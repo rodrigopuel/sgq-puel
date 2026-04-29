@@ -173,8 +173,7 @@ class SupabaseClient {
         .from(tabela)
         .update(dados)
         .eq('id', id)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
       return data;
@@ -186,13 +185,18 @@ class SupabaseClient {
 
   async remove(tabela, id) {
     try {
-      const { error } = await this.client
+      console.log(`Tentando remover ${tabela} com id ${id}`);
+      const { data, error } = await this.client
         .from(tabela)
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
+      console.log(`Resultado remove ${tabela}:`, { data, error });
+      
       if (error) throw error;
-      return true;
+      console.log(`${tabela} excluída com sucesso, registros afetados:`, data?.length || 0);
+      return data;
     } catch (error) {
       console.error(`Erro ao remover ${tabela}:`, error);
       throw error;
