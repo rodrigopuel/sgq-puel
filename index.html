@@ -3316,27 +3316,27 @@ DADOS GERAIS:
 DADOS POR OBRA:
 ${JSON.stringify(resumoObras, null, 2)}
 
-Produza um relatório com as seguintes seções em Markdown:
+Produza um relatório com as seguintes seções em Markdown. **Seja conciso e direto — o relatório completo deve caber em no máximo 3500 tokens de resposta. Priorize qualidade e objetividade sobre extensão.**
 
 ## 🏗️ Visão Executiva
-Resumo geral do estado da qualidade das obras. Seja direto e objetivo. Destaque os pontos mais críticos.
+Resumo geral em até 3 parágrafos curtos. Destaque os pontos mais críticos.
 
 ## 📊 Desempenho por Obra
-Analise cada obra individualmente. Destaque pontos positivos e negativos. Compare o desempenho entre as obras.
+Máximo 3-4 linhas por obra. Destaque ICA, NC abertas e pontos críticos.
 
 ## ⚠️ Alertas e Riscos
-Liste os problemas mais urgentes que requerem atenção imediata. Priorize por criticidade.
+Liste no máximo 5 alertas prioritários, do mais crítico ao menos crítico.
 
 ## 🔍 Insights e Padrões
-Identifique padrões nas não conformidades. Há serviços ou tipos de problemas recorrentes? Quais tendências preocupantes você observa?
+Máximo 3-4 insights objetivos baseados nos dados.
 
 ## ✅ Recomendações
-Liste ações concretas e priorizadas para melhorar a qualidade. Seja específico: quem deve fazer o quê e quando.
+Liste no máximo 5 ações concretas e priorizadas. Uma linha cada.
 
 ## 📈 Indicadores-chave
-Resuma os KPIs mais importantes em bullets.
+Bullets concisos com os KPIs mais importantes.
 
-Seja analítico, direto e profissional. Use linguagem técnica adequada à engenharia civil. Não seja genérico — baseie tudo nos dados fornecidos.`;
+Seja analítico e profissional. Use linguagem técnica de engenharia civil. Baseie tudo nos dados fornecidos. Não repita informações entre seções.`;
 
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:16px">
