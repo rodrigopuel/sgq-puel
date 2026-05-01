@@ -227,7 +227,7 @@ tr:hover td{background:var(--bg3);color:var(--text)}
 .cell-C{background:rgba(34,197,94,.12)!important;color:#4ade80}
 .cell-NC{background:rgba(239,68,68,.12)!important;color:#f87171}
 .cell-RC{background:rgba(168,85,247,.12)!important;color:#c084fc}
-.cell-NA{background:rgba(90,100,128,.12)!important;color:var(--text3)}
+.cell-NA{background:rgba(90,100,128,.12)!important;color:var(--text3}
 
 .ocorr-card{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px}
 .ocorr-card.rc{border-left-color:var(--purple)}
@@ -264,63 +264,12 @@ tr:hover td{background:var(--bg3);color:var(--text)}
   .obra-dash-stats{grid-template-columns:repeat(2,1fr)}
 }
 .fornecedor-lista{position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);max-height:200px;overflow-y:auto;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-
-/* Estilos personalizados para o módulo dossie */
-.dossie-select{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
-.dossie-actions{display:flex;gap:10px;margin-bottom:16px}
-.dossie-btn{background:transparent;border:1px solid var(--border2);color:var(--text2);padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s}
-.dossie-btn:hover{background:var(--bg3)}
-.dossie-fvs-list{display:flex;flex-direction:column;gap:8px}
-.dossie-fvs-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s}
-.dossie-fvs-item:hover{border-color:var(--border2)}
-.dossie-fvs-checkbox{width:16px;height:16px;border:1px solid var(--border2);background:transparent;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-right:12px}
-.dossie-fvs-checkbox.checked{background:var(--accent);border-color:var(--accent)}
-.dossie-fvs-checkbox.checked svg{width:10px;height:10px}
-.dossie-fvs-content{flex:1}
-.dossie-fvs-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
-.dossie-fvs-desc{font-size:11px;color:var(--text3)}
-.dossie-fvs-badge{background:var(--bg4);color:var(--accent);padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border2)}
-/* ── PDF STYLES ────────────────────────────────────────── */
-.pdf-page{background:white;width:100%;max-width:210mm;min-height:297mm;margin:0 auto 20px;padding:14mm 14mm 10mm;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;box-shadow:0 4px 24px rgba(0,0,0,.3);border-radius:4px}
-.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1a1a1a}
-.pdf-logo{font-size:20px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px}
-.pdf-logo span{color:#CAB484}
-.pdf-titulo{font-size:15px;font-weight:700;color:#1a1a1a;text-align:right}
-.pdf-subtitulo{font-size:10px;color:#888;text-align:right;margin-top:3px}
-.pdf-meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#e0e0e0;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;margin-bottom:12px}
-.pdf-meta-box{background:white;padding:8px 10px}
-.pdf-meta-label{font-size:7.5px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
-.pdf-meta-val{font-size:12px;font-weight:600;color:#1a1a1a}
-.pdf-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px}
-.pdf-table thead tr{background:#1a1a1a}
-.pdf-table thead th{color:white;font-size:10px;font-weight:600;padding:7px 6px;text-align:center}
-.pdf-table thead th:first-child{text-align:left;padding-left:10px}
-.th-loc{white-space:nowrap;min-width:72px;font-size:10px}
-.pdf-table tbody tr:nth-child(even){background:#f9fafb}
-.pdf-table tbody tr:nth-child(odd){background:#ffffff}
-td.td-item{padding:7px 10px;font-size:11px;font-weight:500;color:#1a1a1a;vertical-align:top;border-bottom:1px solid #f0f0f0;min-width:130px}
-td.td-item small{display:block;color:#888;font-size:9px;font-weight:400;margin-top:1px}
-td.td-cel{text-align:center;padding:7px 4px;border-bottom:1px solid #f0f0f0}
-td.td-cel span{font-weight:700;font-size:11px}
-.pdf-C{color:#16a34a}
-.pdf-NC{color:#dc2626}
-.pdf-RC{color:#7c3aed}
-.pdf-NA{color:#6b7280}
-.pdf-legenda-row{display:flex;gap:14px;font-size:9px;color:#555;flex-wrap:wrap;margin-bottom:8px;padding:4px 0;border-top:1px solid #eee}
-.pdf-ocorr-titulo{font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin:10px 0 5px}
-.pdf-ocorr-row{padding:7px 10px;border-left:3px solid #dc2626;background:#fff5f5;border-radius:0 4px 4px 0;margin-bottom:5px;font-size:10px;line-height:1.5}
-.pdf-ocorr-row.rc{border-left-color:#7c3aed;background:#faf5ff}
-.pdf-footer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:32px;padding-top:12px;border-top:1px solid #e0e0e0;text-align:center}
-.pdf-assinatura{text-align:center}
-.pdf-ass-linha{border-top:1px solid #1a1a1a;margin-top:28px;padding-top:5px}
-.pdf-ass-label{font-size:8px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px}
-@media print{
-  body>*:not(#pdf-preview){display:none!important}
-  #pdf-preview{position:static!important;background:white!important;padding:0!important}
-  #pdf-toolbar-bar{display:none!important}
-  .pdf-page{box-shadow:none!important;margin:0!important;border-radius:0!important;min-height:0!important;page-break-after:always;page-break-inside:avoid}
-  .pdf-page:last-child{page-break-after:avoid}
-}
+.dossie-select{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.fvs-check-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.fvs-check-item:hover{border-color:var(--border2)}
+.fvs-check-item.sel{border-color:var(--accent);background:#1e1c14}
+.fvs-check-box{width:16px;height:16px;border-radius:3px;border:1px solid var(--border2);background:var(--bg4);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.fvs-check-box.checked{background:var(--accent);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -334,9 +283,13 @@ td.td-cel span{font-weight:700;font-size:11px}
     </div>
     <div class="login-card">
       <div class="login-title">Acesso ao sistema</div>
-      <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com.br"></div>
-      <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="••••••••"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="login-email" value="diretor@puel.com.br"></div>
+      <div class="field"><label>Senha</label><input type="password" id="login-senha" value="123456"></div>
       <button class="btn btn-primary btn-full" onclick="fazerLogin()">Entrar</button>
+    </div>
+    <div class="login-hint"><p><strong>Contas:</strong> diretor@puel.com.br (Admin) · engenheiro@puel.com.br · tecnico@puel.com.br — Senha: <strong>123456</strong></p></div>
+    <div class="login-hint" style="margin-top:8px">
+      <button class="btn btn-secondary btn-sm" onclick="migrarParaSupabase()">🔄 Migrar dados para Supabase</button>
     </div>
   </div>
 </div>
@@ -437,13 +390,13 @@ td.td-cel span{font-weight:700;font-size:11px}
     <div class="modal-body">
       <div style="text-align:center;margin-bottom:20px">
         <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px">
-          <button class="btn btn-success" style="padding:8px 16px;font-size:14px;font-weight:600" onclick="selecionarResultado('C')">
+          <button class="btn btn-success" style="padding:12px 24px;font-size:16px;font-weight:600" onclick="selecionarResultado('C')">
             ✓ CONFORME
           </button>
-          <button class="btn btn-danger" style="padding:8px 16px;font-size:14px;font-weight:600" onclick="selecionarResultado('NC')">
+          <button class="btn btn-danger" style="padding:12px 24px;font-size:16px;font-weight:600" onclick="selecionarResultado('NC')">
             ✗ NÃO CONFORME
           </button>
-          <button class="btn btn-secondary" style="padding:8px 16px;font-size:14px;font-weight:600" onclick="selecionarResultado('NA')">
+          <button class="btn btn-secondary" style="padding:12px 24px;font-size:16px;font-weight:600" onclick="selecionarResultado('NA')">
             ○ NÃO APLICÁVEL
           </button>
         </div>
@@ -592,12 +545,6 @@ function mostrarTela(id){document.querySelectorAll('.screen').forEach(s=>s.class
 const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Dossiê / PDF',fornecedores:'Fornecedores',usuarios:'Usuários'};
 
 async function navegar(s){
-  // Exigir seleção de obra para FVS, FVM e Dossiê
-  if (['fvs','fvm','dossie'].includes(s) && !obraSelecionadaId) {
-    toast('Selecione uma obra no menu lateral antes de acessar este módulo', 'error');
-    return;
-  }
-  
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const nav=document.getElementById('nav-'+s);if(nav)nav.classList.add('active');
   
@@ -1194,20 +1141,8 @@ async function encerrarObra(obraId) {
 async function renderFVS(m){
   try {
     const client = await esperarSupabase();
-    let fvsList = await client.getFVS();
+    const fvsList = await client.getFVS();
     const obras = await client.getObras();
-    
-    // Filtrar pela obra selecionada
-    if (obraSelecionadaId) {
-      fvsList = fvsList.filter(f => f.obra_id === obraSelecionadaId);
-    }
-    const obraAtual = obras.find(o => o.id === obraSelecionadaId);
-    
-    // Carregar ocorrências para contagem de NC
-    const todasOcorrencias = await client.getOcorrencias();
-    fvsList.forEach(fvs => {
-      fvs.ocorrencias = todasOcorrencias.filter(o => o.fvs_id === fvs.id);
-    });
     
     // Calcular estatísticas
     const emAndamento = fvsList.filter(f => f.status === 'andamento');
@@ -1223,7 +1158,7 @@ async function renderFVS(m){
     
     m.innerHTML=`
       <div class="page-header">
-        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
+        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas</div></div>
         <button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>
       </div>
       
@@ -1266,11 +1201,8 @@ async function renderFVS(m){
                     <div style="font-size:11px;color:var(--text3);margin-top:2px">${obra?.nome||'—'}</div>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-                    <div style="display:flex;gap:6px;align-items:center">
-                      <span class="tag ${fvs.status==='andamento'?'tag-and':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':'ENCERRADA'}</span>
-                      ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
-                      ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
-                    </div>
+                    <span class="tag ${fvs.status==='andamento'?'tag-and':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':'ENCERRADA'}</span>
+                    ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
@@ -1304,11 +1236,8 @@ async function renderFVS(m){
                     <div style="font-size:11px;color:var(--text3);margin-top:2px">${obra?.nome||'—'}</div>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-                    <div style="display:flex;gap:6px;align-items:center">
-                      <span class="tag ${fvs.status==='andamento'?'tag-and':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':'ENCERRADA'}</span>
-                      ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
-                      ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
-                    </div>
+                    <span class="tag ${fvs.status==='andamento'?'tag-and':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':'ENCERRADA'}</span>
+                    ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
@@ -1337,53 +1266,32 @@ async function renderFVS(m){
 }
 
 function calcularProgressoFVS(fvs) {
-  // Usar cálculo real baseado nos resultados preenchidos
-  const percentual = calcularPercentualConcluido(fvs);
+  // Simulação de cálculo de progresso baseado nos resultados
+  // Em um sistema real, isso viria dos dados da FVS
+  const criterios = fvs.criterios || [];
+  if (criterios.length === 0) return { percentual: 0, cor: '#6b7280' };
+  
+  // Simulação: 80-100% = verde, 60-79% = amarelo, <60% = vermelho
+  const percentualSimulado = 85 + Math.floor(Math.random() * 15); // 85-99%
   
   let cor = '#22c55e'; // verde
-  if (percentual < 60) cor = '#ef4444'; // vermelho
-  else if (percentual < 80) cor = '#f59e0b'; // amarelo
+  if (percentualSimulado < 60) cor = '#ef4444'; // vermelho
+  else if (percentualSimulado < 80) cor = '#f59e0b'; // amarelo
   
-  return { percentual, cor };
+  return { percentual: percentualSimulado, cor };
 }
 
 function calcularICA(fvs) {
-  // Cálculo real do ICA (Índice de Conformidade)
-  // ICA = (Itens Conformes / Total de Itens Verificados exceto NA) * 100
-  const resultados = fvs.resultados || {};
-  const itensVerificados = Object.keys(resultados);
+  // Simulação de cálculo de ICA (Índice de Conformidade)
+  const criterios = fvs.criterios || [];
+  if (criterios.length === 0) return 0;
   
-  if (itensVerificados.length === 0) return 0;
-  
-  // Filtrar itens que não são NA
-  const itensRelevantes = itensVerificados.filter(chave => {
-    const resultado = resultados[chave];
-    return resultado !== 'NA';
-  });
-  
-  if (itensRelevantes.length === 0) return 0;
-  
-  // Contar apenas itens conformes (C)
-  let conformes = 0;
-  itensRelevantes.forEach(chave => {
-    const resultado = resultados[chave];
-    if (resultado === 'C') {
-      conformes++;
-    }
-  });
-  
-  // Calcular ICA
-  const ica = Math.round((conformes / itensRelevantes.length) * 100);
-  return ica;
+  // Simulação baseada no progresso
+  const progresso = calcularProgressoFVS(fvs);
+  return Math.max(80, progresso.percentual - 5); // ICA um pouco menor que o progresso
 }
 
 function abrirModalNovaFVS() {
-  // Verificar se há uma obra selecionada
-  if (!obraSelecionadaId) {
-    toast('Por favor, selecione uma obra no menu antes de criar uma nova FVS', 'error');
-    return;
-  }
-  
   const modalHtml = `
     <div id="modal-nova-fvs" class="modal-overlay">
       <div class="modal" style="max-width:600px">
@@ -1394,8 +1302,9 @@ function abrirModalNovaFVS() {
         <div class="modal-body">
           <div class="field">
             <label>OBRA</label>
-            <input type="text" id="fvs-obra-display" readonly placeholder="Obra será carregada..." style="background:var(--bg3);border:1px solid var(--border);color:var(--text2)">
-            <input type="hidden" id="fvs-obra" required>
+            <select id="fvs-obra" required>
+              <option value="">Selecione uma obra...</option>
+            </select>
           </div>
           <div class="field">
             <label>TEMPLATE DE SERVIÇO</label>
@@ -1437,20 +1346,11 @@ async function carregarDadosModalNovaFVS() {
     
     // Carregar obras ativas
     const obras = await client.getObras();
-    
-    // Pré-preencher obra selecionada
-    if (obraSelecionadaId) {
-      const obraSelecionada = obras.find(o => o.id === obraSelecionadaId);
-      if (obraSelecionada) {
-        // Preencher campo display
-        const displayField = document.getElementById('fvs-obra-display');
-        displayField.value = `${obraSelecionada.cod} - ${obraSelecionada.nome}`;
-        
-        // Preencher campo hidden com o ID
-        const hiddenField = document.getElementById('fvs-obra');
-        hiddenField.value = obraSelecionadaId;
-      }
-    }
+    const obrasSelect = document.getElementById('fvs-obra');
+    obrasSelect.innerHTML = '<option value="">Selecione uma obra...</option>' + 
+      obras.filter(o => o.status === 'ativa').map(obra => 
+        `<option value="${obra.id}">${obra.cod} - ${obra.nome}</option>`
+      ).join('');
     
     // Carregar templates FVS
     const templates = await client.getTemplatesFVS();
@@ -1589,38 +1489,9 @@ async function criarNovaFVS() {
 
 async function abrirFVS(fvsId) {
   try {
-    console.log('🔍 DEBUG abrirFVS:', { fvsId });
-    
     const client = await esperarSupabase();
-    
-    // Tentar obter a FVS específica diretamente para garantir dados atualizados
-    let fvs = null;
-    try {
-      // Primeiro tentar obter da lista geral
-      const fvsList = await client.getFVS();
-      fvs = fvsList.find(f => f.id === fvsId);
-      
-      // Se não encontrar ou para garantir dados atualizados, buscar diretamente
-      if (!fvs) {
-        console.log('🔍 DEBUG: Buscando FVS diretamente do banco...');
-        const fvsDirect = await client.get('fvs', { id: fvsId });
-        fvs = fvsDirect.length > 0 ? fvsDirect[0] : null;
-      }
-    } catch (error) {
-      console.error('Erro ao buscar FVS:', error);
-      // Fallback para método anterior
-      const fvsList = await client.getFVS();
-      fvs = fvsList.find(f => f.id === fvsId);
-    }
-    
-    console.log('📋 DEBUG FVS encontrada:', {
-      fvsId,
-      encontrada: !!fvs,
-      resultados: fvs?.resultados,
-      totalResultados: Object.keys(fvs?.resultados || {}).length,
-      resultadosKeys: Object.keys(fvs?.resultados || {}),
-      resultadosDetalhado: fvs?.resultados
-    });
+    const fvsList = await client.getFVS();
+    const fvs = fvsList.find(f => f.id === fvsId);
     
     if (!fvs) {
       toast('FVS não encontrada', 'error');
@@ -1642,8 +1513,7 @@ async function abrirFVS(fvsId) {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
       <div style="margin-bottom:14px">
-        <button class="btn btn-ghost btn-sm" onclick="voltarESalvarFVS('${fvs.id}')">← Salvar e voltar</button>
-        ${fvs.status === 'encerrada' ? `<button class="btn btn-ghost btn-sm" onclick="reabrirFVS('${fvs.id}')">Reabrir FVS</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="renderFVS(document.getElementById('main-content'))">← Voltar para FVS</button>
       </div>
       
       <!-- Box 1: Dados da Ficha -->
@@ -1708,7 +1578,7 @@ async function abrirFVS(fvsId) {
             ICA: ${calcularICA(fvs)}% · ${calcularPercentualConcluido(fvs)}% concluído
           </div>
         </div>
-        <div style="position:relative;height:9px;background:var(--bg3);border-radius:6px;overflow:hidden">
+        <div style="position:relative;height:12px;background:var(--bg3);border-radius:6px;overflow:hidden">
           <div style="display:flex;height:100%">
             ${calcularResumoVerificacoes(fvs).map(item => `
               <div style="width:${item.percentual}%;height:100%;background:${item.cor}"></div>
@@ -1736,36 +1606,21 @@ async function abrirFVS(fvsId) {
             </tr>
           </thead>
           <tbody>
-            ${(fvs.criterios || []).map((criterio, i) => {
-              console.log(`🔍 DEBUG Renderizando linha ${i}:`, { criterio: criterio.item });
-              return `
+            ${(fvs.criterios || []).map((criterio, i) => `
               <tr>
                 <td class="td-item" style="width:20%">${criterio.item}</td>
                 <td class="td-item" style="width:15%">${criterio.metodo || ''}</td>
                 <td class="td-item" style="width:15%">${criterio.tolerancia || ''}</td>
-                ${(fvs.locais || []).map((local, j) => {
-                  const chave = `${i}-${j}`;
-                  const resultado = fvs.resultados?.[chave];
-                  console.log(`🔍 DEBUG Célula [${i}][${j}]:`, { 
-                    chave, 
-                    resultado, 
-                    local,
-                    existeResultado: !!resultado,
-                    resultadosDisponiveis: Object.keys(fvs.resultados || {}),
-                    todosResultados: fvs.resultados
-                  });
-                  return `
+                ${(fvs.locais || []).map((local, j) => `
                   <td style="width:8%">
-                    <button class="cell-btn ${resultado ? `cell-${resultado}` : 'cell-blank'}" 
+                    <button class="cell-btn ${fvs.resultados && fvs.resultados[`${i}-${j}`] ? `cell-${fvs.resultados[`${i}-${j}`]}` : 'cell-blank'}" 
                             onclick="marcarCelulaFVS('${fvs.id}', ${i}, '${local}', this)">
-                      ${resultado || ''}
+                      ${fvs.resultados && fvs.resultados[`${i}-${j}`] ? fvs.resultados[`${i}-${j}`] : ''}
                     </button>
                   </td>
-                `;
-                }).join('')}
+                `).join('')}
               </tr>
-            `;
-            }).join('')}
+            `).join('')}
           </tbody>
         </table>
       </div>
@@ -1869,8 +1724,34 @@ function renderOcorrenciasFVS(ocorrencias) {
 }
 
 function marcarCelulaFVS(fvsId, criterioIndex, local, button) {
-  // Abrir modal de preenchimento para escolher o resultado
-  abrirModalPreenchimento(fvsId, criterioIndex, local, button);
+  // Ciclo entre vazio -> C -> NC -> RC -> NA -> vazio
+  const valores = ['', 'C', 'NC', 'RC', 'NA'];
+  const classes = ['cell-blank', 'cell-C', 'cell-NC', 'cell-RC', 'cell-NA'];
+  
+  let valorAtual = button.textContent.trim();
+  let indiceAtual = valores.indexOf(valorAtual);
+  let proximoIndice = (indiceAtual + 1) % valores.length;
+  
+  button.textContent = valores[proximoIndice];
+  button.className = `cell-btn ${classes[proximoIndice]}`;
+  
+  // Salvar resultado na FVS atual
+  if (window.fvsAtual) {
+    if (!window.fvsAtual.resultados) {
+      window.fvsAtual.resultados = {};
+    }
+    const chave = `${criterioIndex}-${window.fvsAtual.locais.indexOf(local)}`;
+    if (valores[proximoIndice] === '') {
+      delete window.fvsAtual.resultados[chave];
+    } else {
+      window.fvsAtual.resultados[chave] = valores[proximoIndice];
+    }
+  }
+  
+  // Se for NC ou RC, abrir modal para registrar ocorrência
+  if (valores[proximoIndice] === 'NC' || valores[proximoIndice] === 'RC') {
+    abrirModalOcorrencia(fvsId, criterioIndex, local, valores[proximoIndice]);
+  }
 }
 
 function abrirModalOcorrencia(fvsId, criterioIndex, local, tipo) {
@@ -1896,7 +1777,7 @@ function abrirModalOcorrencia(fvsId, criterioIndex, local, tipo) {
       <div class="modal" style="max-width:600px">
         <div class="modal-header">
           <h3>Registrar Não Conformidade</h3>
-          <button class="btn btn-ghost" onclick="cancelarRegistroNC()">✕</button>
+          <button class="btn btn-ghost" onclick="fecharModal('modal-ocorrencia')">✕</button>
         </div>
         <div class="modal-body">
           <div class="field">
@@ -1911,7 +1792,7 @@ function abrirModalOcorrencia(fvsId, criterioIndex, local, tipo) {
               <option value="material">Material</option>
               <option value="metodo">Método</option>
               <option value="medidas">Medidas</option>
-              <option value="maquinas">Máquina</option>
+              <option value="maquina">Máquina</option>
               <option value="meio_ambiente">Meio Ambiente</option>
             </select>
           </div>
@@ -2022,11 +1903,10 @@ async function salvarOcorrencia() {
     
     // Criar ocorrência na tabela separada
     const criterio = window.fvsAtual.criterios[modalCriterioIndex];
-    const localIdx = window.fvsAtual.locais.indexOf(modalLocal);
     const novaOcorrencia = {
       id: mkId('oc'),
       fvs_id: modalFvsId,
-      criterio_id: criterio?.id || `crit_${modalCriterioIndex}`,
+      criterio_id: criterio?.id || `crit_${modalCriterioIndex}`, // Fallback se id for null
       criterio_item: criterio?.item || `Critério ${modalCriterioIndex}`,
       local: modalLocal,
       descricao: descricao,
@@ -2145,23 +2025,17 @@ async function cancelarRegistroNC() {
       window.fvsAtual.resultados = {};
     }
     
-    // Usar a mesma chave que é usada na grade (criterioIndex-localIndex)
-    const localIndex = window.fvsAtual.locais.indexOf(modalLocal);
-    const chaveCelula = `${modalCriterioIndex}-${localIndex}`;
+    // Usar a mesma chave que é usada na verificação (abrirModalPreenchimento)
+    const chaveCelula = `${modalCriterioIndex}-${modalLocal}`;
     delete window.fvsAtual.resultados[chaveCelula];
     
     console.log('Chave da célula limpa:', chaveCelula);
     console.log('Resultados após limpar:', window.fvsAtual.resultados);
     
     // Atualizar FVS no banco
-    const dadosAtualizados = await client.update('fvs', modalFvsId, {
+    await client.update('fvs', modalFvsId, {
       resultados: window.fvsAtual.resultados
     });
-    
-    // Atualizar window.fvsAtual com os dados retornados do banco
-    if (dadosAtualizados && dadosAtualizados.length > 0) {
-      window.fvsAtual = { ...window.fvsAtual, ...dadosAtualizados[0] };
-    }
     
     // Atualizar interface da célula - buscar por índice e local
     const celulas = document.querySelectorAll('.cell-btn');
@@ -2312,49 +2186,16 @@ async function marcarCorrigida(fvsId, ocorrenciaId) {
     if (window.fvsAtual) {
       const ocorrencia = window.fvsAtual.ocorrencias?.find(o => o.id === ocorrenciaId);
       if (ocorrencia) {
-        // Encontrar o índice do critério e do local
-        let criterioIndex = window.fvsAtual.criterios?.findIndex(c => c.id && c.id === ocorrencia.criterio_id);
-        if (criterioIndex === -1) {
-          criterioIndex = window.fvsAtual.criterios?.findIndex(c => c.item === ocorrencia.criterio_item);
+        const chaveCelula = `${ocorrencia.criterio_id}_${ocorrencia.local}`;
+        if (!window.fvsAtual.resultados) {
+          window.fvsAtual.resultados = {};
         }
-        if (criterioIndex === -1 && ocorrencia.criterio_id?.startsWith('crit_')) {
-          criterioIndex = parseInt(ocorrencia.criterio_id.replace('crit_', ''), 10);
-          if (isNaN(criterioIndex) || criterioIndex >= (window.fvsAtual.criterios?.length||0)) criterioIndex = -1;
-        }
-        const localIndex = window.fvsAtual.locais?.indexOf(ocorrencia.local);
+        window.fvsAtual.resultados[chaveCelula] = 'RC';
         
-        if (criterioIndex !== -1 && localIndex !== -1) {
-          const chaveCelula = `${criterioIndex}-${localIndex}`;
-          
-          if (!window.fvsAtual.resultados) {
-            window.fvsAtual.resultados = {};
-          }
-          window.fvsAtual.resultados[chaveCelula] = 'RC';
-          
-          console.log('🔄 Atualizando célula para RC:', {
-            ocorrenciaId,
-            criterioIndex,
-            localIndex,
-            chaveCelula,
-            criterio: ocorrencia.criterio_item,
-            local: ocorrencia.local
-          });
-          
-          // Atualizar FVS no banco
-          await client.update('fvs', fvsId, {
-            resultados: window.fvsAtual.resultados
-          });
-          
-          // Atualizar interface da célula imediatamente
-          const celulas = document.querySelectorAll('.cell-btn');
-          celulas.forEach(celula => {
-            const onclick = celula.getAttribute('onclick');
-            if (onclick && onclick.includes(`marcarCelulaFVS('${fvsId}', ${criterioIndex}, '${ocorrencia.local}'`)) {
-              celula.textContent = 'RC';
-              celula.className = 'cell-btn cell-RC';
-            }
-          });
-        }
+        // Atualizar FVS no banco
+        await client.update('fvs', fvsId, {
+          resultados: window.fvsAtual.resultados
+        });
       }
     }
     
@@ -2397,44 +2238,33 @@ async function excluirOcorrencia(fvsId, ocorrenciaId) {
       const ocorrencia = window.fvsAtual.ocorrencias?.find(o => o.id === ocorrenciaId);
       
       if (ocorrencia) {
-        const criterios = window.fvsAtual.criterios || [];
-        const locais = window.fvsAtual.locais || [];
+        const chaveCelula = `${ocorrencia.criterio_id}_${ocorrencia.local}`;
         
-        // Encontrar índice do local pelo valor gravado na ocorrência
-        const localIndex = locais.indexOf(ocorrencia.local);
-        
-        // Encontrar índice do critério: tentar por id, depois por item
-        let critIndex = criterios.findIndex(c => c.id && c.id === ocorrencia.criterio_id);
-        if (critIndex === -1) {
-          critIndex = criterios.findIndex(c => c.item === ocorrencia.criterio_item);
+        if (!window.fvsAtual.resultados) {
+          window.fvsAtual.resultados = {};
         }
-        // Último fallback: extrair número do crit_N
-        if (critIndex === -1 && ocorrencia.criterio_id && ocorrencia.criterio_id.startsWith('crit_')) {
-          critIndex = parseInt(ocorrencia.criterio_id.replace('crit_', ''), 10);
-          if (isNaN(critIndex) || critIndex >= criterios.length) critIndex = -1;
-        }
+        delete window.fvsAtual.resultados[chaveCelula];
         
-        console.log('DEBUG excluir - chave calculada:', { critIndex, localIndex, criterio_id: ocorrencia.criterio_id, criterio_item: ocorrencia.criterio_item, local: ocorrencia.local });
-        
-        if (critIndex !== -1 && localIndex !== -1) {
-          const chaveCelula = `${critIndex}-${localIndex}`;
-          
-          if (!window.fvsAtual.resultados) {
-            window.fvsAtual.resultados = {};
-          }
-          delete window.fvsAtual.resultados[chaveCelula];
-          
-          await client.update('fvs', fvsId, {
-            resultados: window.fvsAtual.resultados
-          });
-        }
+        // Atualizar FVS no banco
+        await client.update('fvs', fvsId, {
+          resultados: window.fvsAtual.resultados
+        });
       }
     }
     
     toast('Não conformidade excluída com sucesso', 'success');
     
-    // Recarregar a FVS inteira para atualizar grade e ocorrências
-    abrirFVS(fvsId);
+    // Aguardar um momento para garantir que a exclusão foi processada
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Recarregar ocorrências para atualizar interface
+    const ocorrencias = await client.get('ocorrencias', {fvs_id: fvsId});
+    renderOcorrenciasFVS(ocorrencias);
+    
+    // Recarregar grade para mostrar célula atualizada
+    const fvsAtualizada = await client.getById('fvs', fvsId);
+    window.fvsAtual = fvsAtualizada;
+    window.fvsAtual.ocorrencias = ocorrencias;
     
   } catch (error) {
     console.error('Erro ao excluir ocorrência:', error);
@@ -2460,93 +2290,6 @@ async function encerrarFVS(fvsId) {
   } catch (error) {
     console.error('Erro ao encerrar FVS:', error);
     toast('Erro ao encerrar FVS', 'error');
-  }
-}
-
-async function reabrirFVS(fvsId) {
-  if (!confirm('Deseja reabrir esta FVS? Ela voltará ao status "em andamento".\n\nEsta ação permitirá novas verificações e edições.')) {
-    return;
-  }
-  
-  try {
-    const client = await esperarSupabase();
-    await client.update('fvs', fvsId, {
-      status: 'andamento',
-      fechamento: null
-    });
-    
-    toast('FVS reaberta com sucesso!', 'success');
-    
-    // Recarregar a FVS para mostrar o status atualizado
-    abrirFVS(fvsId);
-    
-  } catch (error) {
-    console.error('Erro ao reabrir FVS:', error);
-    toast('Erro ao reabrir FVS: ' + error.message, 'error');
-  }
-}
-
-async function excluirFVS(fvsId, fvsCod, event) {
-  // Impedir que o clique no botão propague para o card
-  if (event) {
-    event.stopPropagation();
-  }
-  
-  // Verificar se usuário é admin
-  if (usuarioAtual?.perfil !== 'admin') {
-    toast('Ação permitida somente para usuário admin', 'error');
-    return;
-  }
-  
-  try {
-    const client = await esperarSupabase();
-    
-    // Buscar dados da FVS para verificar status
-    const fvsList = await client.getFVS();
-    const fvs = fvsList.find(f => f.id === fvsId);
-    
-    if (!fvs) {
-      toast('FVS não encontrada', 'error');
-      return;
-    }
-    
-    // Verificar se status é "em andamento"
-    if (fvs.status !== 'andamento') {
-      toast('FVS só pode ser excluída por usuário admin e com status: em andamento', 'error');
-      return;
-    }
-    
-    // Confirmar exclusão
-    if (!confirm(`Tem certeza que deseja excluir a FVS ${fvsCod}?\n\nEsta ação não poderá ser desfeita e todos os dados serão perdidos.`)) {
-      return;
-    }
-    
-    // Verificar se existem ocorrências associadas
-    const ocorrencias = await client.get('ocorrencias', { fvs_id: fvsId });
-    if (ocorrencias.length > 0) {
-      if (!confirm(`ATENÇÃO: Esta FVS possui ${ocorrencias.length} ocorrência(ões) registrada(s).\n\nDeseja excluir mesmo assim?`)) {
-        return;
-      }
-    }
-    
-    // Excluir ocorrências associadas primeiro
-    if (ocorrencias.length > 0) {
-      for (const ocorrencia of ocorrencias) {
-        await client.remove('ocorrencias', ocorrencia.id);
-      }
-    }
-    
-    // Excluir a FVS
-    await client.remove('fvs', fvsId);
-    
-    toast(`FVS ${fvsCod} excluída com sucesso!`, 'success');
-    
-    // Recarregar a lista de FVS
-    renderFVS(document.getElementById('main-content'));
-    
-  } catch (error) {
-    console.error('Erro ao excluir FVS:', error);
-    toast('Erro ao excluir FVS: ' + error.message, 'error');
   }
 }
 
@@ -4359,21 +4102,19 @@ async function renderDossie(m){
 
       <div class="dossie-select">
         <div style="font-size:13px;font-weight:600;margin-bottom:10px">Selecione as FVS para o documento</div>
-        <div class="dossie-actions">
-          <button class="dossie-btn" onclick="selAll(true)">Selecionar todas</button>
-          <button class="dossie-btn" onclick="selAll(false)">Limpar</button>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="selAll(true)">Selecionar todas</button>
+          <button class="btn btn-ghost btn-sm" onclick="selAll(false)">Limpar</button>
         </div>
-        <div class="dossie-fvs-list">
-          ${fl.map((f, index)=>{const obra=obras.find(o=>o.id===f.obra_id);const s=calcStats(f);return`
-            <div class="dossie-fvs-item" id="chk-${f.id}" onclick="toggleFVS('${f.id}')">
-              <div style="display:flex;align-items:center;flex:1">
-                <div class="dossie-fvs-checkbox" id="box-${f.id}"></div>
-                <div class="dossie-fvs-content">
-                  <div class="dossie-fvs-title">${index + 1} ${f.servico}</div>
-                  <div class="dossie-fvs-desc">${f.cod} • ${obra?.nome||'—'} • ${f.status==='encerrada'?'Encerrada':'Em andamento'}</div>
-                </div>
+        <div id="fvs-checklist">
+          ${fl.map(f=>{const obra=obras.find(o=>o.id===f.obra_id);const s=calcStats(f);return`
+            <div class="fvs-check-item" id="chk-${f.id}" onclick="toggleFVS('${f.id}')">
+              <div class="fvs-check-box" id="box-${f.id}"></div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:500;color:var(--text)">${f.servico}</div>
+                <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">${f.cod} · ${obra?.nome||'—'} · ${f.status==='encerrada'?'Encerrada':'Em andamento'}</div>
               </div>
-              <div class="dossie-fvs-badge">${s.ica}% ICA</div>
+              <span class="tag ${f.status==='encerrada'?'tag-ok':'tag-and'}">${s.ica}% ICA</span>
             </div>`;}).join('')}
           ${!fl.length?`<div class="empty" style="margin-top:6px"><div class="empty-icon">📋</div><div class="empty-title">${obraSelecionada?'Nenhuma FVS para a obra selecionada':'Nenhuma FVS cadastrada'}</div></div>`:''}
         </div>
@@ -4405,14 +4146,6 @@ function toggleFVS(id){
   const box=document.getElementById('box-'+id), item=document.getElementById('chk-'+id);
   if(box){box.classList.toggle('checked',window.fvsSel.has(id));box.innerHTML=window.fvsSel.has(id)?'<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#1a1610" stroke-width="2"><polyline points="1,5 4,8 9,2"/></svg>':'';}
   if(item)item.classList.toggle('sel',window.fvsSel.has(id));
-  
-  // Debug para verificar seleção
-  console.log('🔍 DEBUG toggleFVS:', { 
-    id, 
-    selecionado: window.fvsSel.has(id), 
-    totalSelecionados: window.fvsSel.size,
-    selecionados: Array.from(window.fvsSel)
-  });
 }
 
 function selAll(sel){
@@ -4431,43 +4164,36 @@ function gerarPDF(tipo){
   const usuarios=window._dossieUsuarios||[];
   const templates=window._dossieTemplates||[];
 
-  // Montar ou reutilizar container de preview
-  let preview=document.getElementById('pdf-preview');
-  if(!preview){
-    preview=document.createElement('div');
-    preview.id='pdf-preview';
-    preview.style.cssText='display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;overflow:auto;padding:24px 16px';
-    preview.innerHTML=`
-      <div id="pdf-toolbar-bar" style="max-width:900px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center">
-        <span style="color:white;font-size:14px;font-weight:600">Pré-visualização do PDF</span>
-        <div style="display:flex;gap:8px">
-          <button onclick="window.print()" style="background:#CAB484;border:none;color:#1a1a1a;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700">🖨 Imprimir / Salvar PDF</button>
-          <button onclick="fecharPDF()" style="background:rgba(255,255,255,.15);border:none;color:white;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px">✕ Fechar</button>
-        </div>
-      </div>
-      <div id="pdf-content"></div>`;
-    document.body.appendChild(preview);
-  }
+  // build PDF preview inline
+  const preview = document.getElementById('pdf-preview') || (() => {
+    const el = document.createElement('div');
+    el.id='pdf-preview';
+    el.style.cssText='display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:200;overflow:auto;padding:20px';
+    el.innerHTML=`<div style="max-width:800px;margin:0 auto;background:white;border-radius:8px;overflow:hidden"><div class="pdf-toolbar" style="background:#1a1a1a;color:white;padding:12px;display:flex;justify-content:space-between;align-items:center"><span>Pré-visualização do PDF</span><div style="display:flex;gap:8px"><button onclick="window.print()" style="background:rgba(255,255,255,.15);border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">🖨 Imprimir / Salvar PDF</button><button onclick="fecharPDF()" style="background:rgba(255,255,255,.15);border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">✕ Fechar</button></div></div><div id="pdf-content" style="padding:20px;font-family:Arial,sans-serif"></div></div>`;
+    document.body.appendChild(el);
+    return el;
+  })();
 
-  const c=document.getElementById('pdf-content');
-  c.innerHTML='';
-  if(tipo==='dossie') c.appendChild(mkCapa(sel,obras,usuarios,templates));
-  sel.forEach(f=>c.appendChild(mkPgFVS(f,obras,usuarios,templates)));
+  const content = document.getElementById('pdf-content');
+  content.innerHTML='';
+  if(tipo==='dossie') content.appendChild(mkCapa(sel));
+  sel.forEach(f => content.appendChild(mkPgFVS(f, obras, usuarios, templates)));
   preview.style.display='block';
   preview.scrollTop=0;
 }
 
-function mkCapa(fl,obras,usuarios,templates){
-  const div=document.createElement('div');div.className='pdf-page';
+function mkCapa(fl){
+  const div=document.createElement('div'); div.className='pdf-page';
+  const obras=window._dossieObras||[];
   const nomes=[...new Set(fl.map(f=>f.obra_id||f.obraId))].map(id=>obras.find(o=>o.id===id)?.nome||id).join(', ');
   let totC=0,totAll=0,totNC=0;
   fl.forEach(f=>{const s=calcStats(f);totC+=s.C;totAll+=s.total;totNC+=(f.ocorrencias||[]).length;});
   const ica=totAll>0?Math.round(totC/totAll*100):0;
   div.innerHTML=`<div style="text-align:center;padding:40px 0 60px">
-    <div style="font-family:'Barlow Condensed',Arial;font-size:34px;font-weight:700;color:#1a1a1a;margin-bottom:4px">PUEL <span style="color:#CAB484">ENGENHARIA</span></div>
+    <div style="font-family:'Barlow Condensed';font-size:34px;font-weight:700;color:#1a1a1a;margin-bottom:4px">PUEL <span style="color:#CAB484">ENGENHARIA</span></div>
     <div style="font-size:11px;color:#888;letter-spacing:3px;text-transform:uppercase;margin-bottom:60px">Sistema de Gestão da Qualidade — PBQP-h</div>
     <div style="font-size:11px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Dossiê de Auditoria</div>
-    <div style="font-family:'Barlow Condensed',Arial;font-size:26px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Fichas de Verificação de Serviço</div>
+    <div style="font-family:'Barlow Condensed';font-size:26px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Fichas de Verificação de Serviço</div>
     <div style="font-size:14px;color:#444;margin-bottom:60px">${nomes}</div>
     <div style="display:inline-grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:60px">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px 20px;text-align:center"><div style="font-size:30px;font-weight:700;color:#16a34a">${ica}%</div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">ICA Geral</div></div>
@@ -4479,33 +4205,24 @@ function mkCapa(fl,obras,usuarios,templates){
   return div;
 }
 
-function mkPgFVS(fvs,obras,usuarios,templates){
+function mkPgFVS(fvs, obras, usuarios, templates){
   const tpl=templates.find(t=>t.id===(fvs.template_id||fvs.templateId));
   const obra=obras.find(o=>o.id===(fvs.obra_id||fvs.obraId));
   const inspector=usuarios.find(u=>u.id===(fvs.inspetor_id||fvs.inspectorId));
-  const s=calcStats(fvs);
-  const crits=fvs.criterios||tpl?.criterios||[];
-  const locais=fvs.locais||[];
-  const ocs=fvs.ocorrencias||[];
-  const div=document.createElement('div');div.className='pdf-page';
-
+  const s=calcStats(fvs); const crits=fvs.criterios||tpl?.criterios||[]; const locais=fvs.locais||[];
+  const div=document.createElement('div'); div.className='pdf-page';
   const grade=crits.map((c,i)=>`<tr>
     <td class="td-item">${esc(c.item||c.titulo||'')}${c.tolerancia&&c.tolerancia!=='—'?`<small>${esc(c.tolerancia)}</small>`:''}</td>
-    ${locais.map((l,j)=>{
-      const v=fvs.resultados?.[`${i}-${j}`]||fvs.resultados?.[`${c.id}_${l}`]||'';
-      return`<td class="td-cel"><span class="${v?'pdf-'+v:''}">${v||'—'}</span></td>`;
-    }).join('')}
+    ${locais.map((l,j)=>{const v=fvs.resultados?.[`${i}-${j}`]||fvs.resultados?.[`${c.id}_${l}`]||'';return`<td class="td-cel"><span class="${v?'pdf-'+v:''}">${v||'—'}</span></td>`;}).join('')}
   </tr>`).join('');
-
+  const ocs=fvs.ocorrencias||[];
   const ocsHtml=ocs.length?`<div class="pdf-ocorr-titulo">Ocorrências registradas (${ocs.length})</div>
-    ${ocs.map((oc,i)=>{
-      const resp=usuarios.find(u=>u.id===(oc.responsavel_id||oc.respId));
+    ${ocs.map((oc,i)=>{const resp=usuarios.find(u=>u.id===(oc.responsavel_id||oc.respId));
       return`<div class="pdf-ocorr-row ${oc.status==='encerrada'?'rc':''}">
         <strong>${i+1}. ${esc(oc.criterio_item||oc.critItem||'')}</strong> · ${esc(oc.local)}<br>
         <span style="color:#555">${esc(oc.descricao||oc.desc||'')}</span><br>
         ${oc.acao?`Ação: ${esc(oc.acao)} · `:''}Resp.: ${resp?.nome||'—'} · Prazo: ${oc.prazo?new Date(oc.prazo+'T12:00').toLocaleDateString('pt-BR'):'—'} · <strong>${oc.status==='encerrada'?'Corrigida':'Aberta'}</strong>
       </div>`;}).join('')}`:'';
-
   div.innerHTML=`
     <div class="pdf-header">
       <div><div class="pdf-logo">PUEL <span>SGQ</span></div><div style="font-size:10px;color:#888">Sistema de Gestão da Qualidade</div></div>
@@ -4541,9 +4258,10 @@ function mkPgFVS(fvs,obras,usuarios,templates){
 }
 
 function fecharPDF(){
-  const p=document.getElementById('pdf-preview');
-  if(p) p.style.display='none';
+  const preview = document.getElementById('pdf-preview');
+  if(preview) preview.style.display='none';
 }
+
 // Adicionar estilos para checkboxes e cards de critérios
 const style = document.createElement('style');
 style.textContent = `
@@ -5743,6 +5461,52 @@ async function reativarUsuario(usuarioId){
 }
 
 // Função de migração
+async function migrarParaSupabase() {
+  if (!confirm('Deseja migrar todos os dados do localStorage para o Supabase? Esta ação não pode ser desfeita.')) {
+    return;
+  }
+  
+  try {
+    const client = await esperarSupabase();
+    
+    // Verificar se há dados no localStorage
+    const dadosLocais = {
+      usuarios: localStorage.getItem('sgq_usuarios'),
+      obras: localStorage.getItem('sgq_obras'),
+      templates: localStorage.getItem('sgq_templates'),
+      templates_fvm: localStorage.getItem('sgq_templates_fvm'),
+      fvs: localStorage.getItem('sgq_fvs'),
+      fvm: localStorage.getItem('sgq_fvm'),
+      fornecedores: localStorage.getItem('sgq_fornecedores')
+    };
+    
+    console.log('Dados encontrados no localStorage:', dadosLocais);
+    
+    // Migrar cada tipo de dado
+    for (const [tabela, dados] of Object.entries(dadosLocais)) {
+      if (dados) {
+        try {
+          const dadosArray = JSON.parse(dados);
+          console.log(`Migrando ${tabela}:`, dadosArray.length, 'registros');
+          
+          for (const item of dadosArray) {
+            await client.insert(tabela, item);
+          }
+          
+          toast(`${tabela}: ${dadosArray.length} registros migrados`, 'success');
+        } catch (error) {
+          console.error(`Erro ao migrar ${tabela}:`, error);
+          toast(`Erro em ${tabela}: ${error.message}`, 'error');
+        }
+      }
+    }
+    
+    toast('Migração concluída! Recarregue a página.', 'success');
+  } catch (error) {
+    console.error('Erro na migração:', error);
+    toast('Erro na migração: ' + error.message, 'error');
+  }
+}
 
 // Função auxiliar para fechar modais
 function fecharModal(modalId) {
@@ -5764,8 +5528,7 @@ function abrirModalPreenchimento(fvsId, criterioIndex, local, elemento) {
   console.log('🔍 DEBUG abrirModalPreenchimento:', { fvsId, criterioIndex, local });
   
   // Verificar se célula tem NC ou RC
-  const localIndex = window.fvsAtual.locais.indexOf(local);
-  const chave = `${criterioIndex}-${localIndex}`;
+  const chave = `${criterioIndex}-${local}`;
   const resultado = window.fvsAtual?.resultados?.[chave];
   
   console.log('🔑 DEBUG Verificação NC:', {
@@ -5784,7 +5547,7 @@ function abrirModalPreenchimento(fvsId, criterioIndex, local, elemento) {
   celulaAtual = elemento;
   fvsIdAtual = fvsId;
   criterioIndexAtual = criterioIndex;
-  localAtual = localIndex;
+  localAtual = local;
   resultadoSelecionado = resultado || null;
   
   // Mostrar resultado atual se existir
@@ -5822,9 +5585,8 @@ async function limparVerificacao() {
     
     // Verificar se existe NC para esta célula
     if (window.fvsAtual?.ocorrencias) {
-      const localTexto = window.fvsAtual.locais[localAtual];
       const ncExistente = window.fvsAtual.ocorrencias.find(oc => 
-        oc.criterio_id === `crit_${criterioIndexAtual}` && oc.local === localTexto && oc.status === 'aberta'
+        oc.criterio_id === `crit_${criterioIndexAtual}` && oc.local === localAtual && oc.status === 'aberta'
       );
       
       if (ncExistente) {
@@ -5841,14 +5603,9 @@ async function limparVerificacao() {
     delete window.fvsAtual.resultados[chave];
     
     // Atualizar no banco
-    const dadosAtualizados = await client.update('fvs', fvsIdAtual, {
+    await client.update('fvs', fvsIdAtual, {
       resultados: window.fvsAtual.resultados
     });
-    
-    // Atualizar window.fvsAtual com os dados retornados do banco
-    if (dadosAtualizados && dadosAtualizados.length > 0) {
-      window.fvsAtual = { ...window.fvsAtual, ...dadosAtualizados[0] };
-    }
     
     // Atualizar interface
     if (celulaAtual) {
@@ -5886,26 +5643,10 @@ async function salvarVerificacao() {
     }
     window.fvsAtual.resultados[chave] = resultadoSelecionado;
     
-    console.log('💾 DEBUG salvandoVerificacao:', {
-      fvsId: fvsIdAtual,
-      chave: chave,
-      resultado: resultadoSelecionado,
-      resultadosAntes: window.fvsAtual.resultados,
-      totalResultados: Object.keys(window.fvsAtual.resultados).length
-    });
-    
     // Salvar no banco
-    const dadosAtualizados = await client.update('fvs', fvsIdAtual, {
+    await client.update('fvs', fvsIdAtual, {
       resultados: window.fvsAtual.resultados
     });
-    
-    console.log('✅ DEBUG salvamento no banco concluído:', dadosAtualizados);
-    
-    // Atualizar window.fvsAtual com os dados retornados do banco
-    if (dadosAtualizados && dadosAtualizados.length > 0) {
-      window.fvsAtual = { ...window.fvsAtual, ...dadosAtualizados[0] };
-      console.log('🔄 DEBUG window.fvsAtual atualizado:', window.fvsAtual.resultados);
-    }
     
     // Atualizar interface
     if (celulaAtual) {
@@ -5920,7 +5661,7 @@ async function salvarVerificacao() {
       // Armazenar valores antes de limpar variáveis
       const fvsIdParaNC = fvsIdAtual;
       const criterioIndexParaNC = criterioIndexAtual;
-      const localParaNC = window.fvsAtual.locais[localAtual]; // converter índice para texto
+      const localParaNC = localAtual;
       
       // Fechar modal de preenchimento primeiro
       fecharModalPreenchimento();
@@ -5945,102 +5686,9 @@ async function salvarVerificacao() {
   }
 }
 
-// marcarCelulaFVS definida acima - abre o modal de preenchimento
-
-// Função para voltar e salvar automaticamente as verificações
-async function voltarESalvarFVS(fvsId) {
-  try {
-    console.log('💾 Iniciando salvamento automático ao voltar...');
-    
-    if (!window.fvsAtual || window.fvsAtual.id !== fvsId) {
-      toast('FVS não encontrada ou não carregada', 'error');
-      return;
-    }
-    
-    // Coletar dados diretamente da interface
-    const todasCelulas = document.querySelectorAll('.cell-btn');
-    const resultados = {};
-    let totalPreenchidas = 0;
-    
-    console.log('📊 Total de células encontradas:', todasCelulas.length);
-    
-    // Obter estrutura para mapeamento correto
-    const criterios = window.fvsAtual.criterios || [];
-    const locais = window.fvsAtual.locais || [];
-    
-    todasCelulas.forEach((celula, index) => {
-      const valor = celula.textContent.trim();
-      
-      if (valor !== '') {
-        // Calcular posição baseada no índice
-        const criterioIndex = Math.floor(index / locais.length);
-        const localIndex = index % locais.length;
-        const chave = `${criterioIndex}-${localIndex}`;
-        
-        // Verificar se os índices são válidos
-        if (criterioIndex < criterios.length && localIndex < locais.length) {
-          resultados[chave] = valor;
-          totalPreenchidas++;
-        }
-      }
-    });
-    
-    console.log('📋 Resultados coletados:', {
-      totalPreenchidas,
-      resultados,
-      chaves: Object.keys(resultados)
-    });
-    
-    // Salvar no banco (se houver dados para salvar)
-    if (totalPreenchidas > 0) {
-      const client = await esperarSupabase();
-      let dadosAtualizados = null;
-      
-      try {
-        console.log('🔄 Tentando salvar via RPC...');
-        const { data, error } = await client.client.rpc('atualizar_fvs_verificacoes', {
-          p_fvs_id: fvsId,
-          p_resultados: resultados
-        });
-        
-        if (error) {
-          throw error;
-        }
-        
-        dadosAtualizados = data;
-        console.log('✅ Salvamento via RPC concluído');
-        
-      } catch (rpcError) {
-        console.log('🔄 RPC falhou, tentando update normal:', rpcError);
-        
-        try {
-          dadosAtualizados = await client.update('fvs', fvsId, {
-            resultados: resultados
-          });
-          console.log('✅ Salvamento normal concluído');
-        } catch (updateError) {
-          console.error('❌ Erro de permissão (RLS):', updateError);
-          toast('Erro de permissão ao salvar verificações', 'error');
-          // Mesmo com erro, continua para voltar
-        }
-      }
-      
-      if (dadosAtualizados) {
-        toast(`${totalPreenchidas} verificações salvas!`, 'success');
-      }
-    } else {
-      console.log('📋 Nenhuma verificação para salvar');
-    }
-    
-    // Sempre voltar para a lista de FVS
-    renderFVS(document.getElementById('main-content'));
-    
-  } catch (error) {
-    console.error('❌ Erro ao voltar e salvar:', error);
-    toast('Erro ao salvar: ' + error.message, 'error');
-    // Mesmo com erro, tenta voltar
-    renderFVS(document.getElementById('main-content'));
-  }
+// Modificar função marcarCelulaFVS para usar o novo modal
+function marcarCelulaFVS(fvsId, criterioIndex, local, elemento) {
+  abrirModalPreenchimento(fvsId, criterioIndex, local, elemento);
 }
 
 // Inicialização quando a página carregar
@@ -6050,26 +5698,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('SGQ com Supabase pronto para uso');
 });
 </script>
-<!-- MODAL SELECIONAR TEMPLATE FVM -->
-<div id="modal-selecionar-template-fvm" class="modal-overlay">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-header">
-      <div>
-        <h3>Nova FVM — Selecionar Template</h3>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">Escolha um modelo para iniciar a verificação</div>
-      </div>
-      <button class="btn btn-ghost" onclick="fecharModal('modal-selecionar-template-fvm')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field"><label>Obra</label><input type="text" id="fvm-obra-selecionada" readonly style="background:var(--bg3);color:var(--text2)"></div>
-      <div class="divider"></div>
-      <div id="fvm-templates-list"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" onclick="fecharModal('modal-selecionar-template-fvm')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
