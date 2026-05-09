@@ -241,6 +241,20 @@ tr:hover td{background:var(--bg3);color:var(--text)}
 .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 .ocorrencias-section{margin-top:14px}
 .ocorrencias-title{font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+#modal-editor-foto{display:none;position:fixed;inset:0;background:#000;z-index:10000;flex-direction:column}
+#modal-editor-foto.open{display:flex}
+.editor-toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.editor-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.cor-chip{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:border-color .12s,transform .12s}
+.cor-chip:hover{transform:scale(1.15)}
+.cor-chip.ativa{border-color:#fff;transform:scale(1.15)}
+.cor-chip.escura{border-color:var(--border2)}
+.cor-chip.escura.ativa{border-color:#fff}
+.esp-btn{padding:5px 12px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .12s}
+.esp-btn.ativa{border-color:var(--accent);color:var(--accent);background:var(--bg4)}
+.editor-canvas-area{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:8px;background:#111}
+#canvas-editor{display:block;touch-action:none;cursor:crosshair;border-radius:4px}
+.editor-footer{display:flex;gap:8px;padding:10px 12px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;justify-content:flex-end}
 .ocorrencias-badge{background:#7f1d1d;color:#f87171;border:1px solid #991b1b;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:600}
 
 #toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
@@ -2232,26 +2246,135 @@ async function processarFotoOcorrencia(input) {
   }
 
   try {
-    // Comprimir e converter para base64
-    const base64 = await comprimirImagem(file, 800, 0.7);
-    
-    // Armazenar foto
-    fotoOcorrenciaAtual = {
-      nome: file.name,
-      tipo: 'image/jpeg',
-      tamanho: Math.round(base64.length * 0.75),
-      data: base64,
-      dataUpload: new Date().toISOString()
-    };
-
-    // Mostrar preview
-    mostrarPreviewFotoOcorrencia(base64, file.name);
-    
+    const base64 = await comprimirImagem(file, 1200, 0.85);
+    editorAbrirModal(base64, file.name);
   } catch (error) {
     console.error('Erro ao processar foto:', error);
     toast('Erro ao processar a foto', 'error');
   }
 }
+
+// ─── EDITOR DE FOTO COM DESENHO ───────────────────────────────────────────────
+let _edCtx = null, _edCanvas = null, _edImageBase = null, _edNome = '';
+let _edDesenhando = false, _edCor = '#ffffff', _edEsp = 3;
+let _edHistorico = [], _edUltimoX = 0, _edUltimoY = 0;
+
+function editorAbrirModal(base64, nome) {
+  _edImageBase = base64;
+  _edNome = nome;
+  _edHistorico = [];
+  document.getElementById('modal-editor-foto').classList.add('open');
+  _edCanvas = document.getElementById('canvas-editor');
+  _edCtx = _edCanvas.getContext('2d');
+  const img = new Image();
+  img.onload = () => {
+    const area = _edCanvas.parentElement;
+    const maxW = area.clientWidth - 16;
+    const maxH = area.clientHeight - 16;
+    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    _edCanvas.width  = Math.round(img.width  * scale);
+    _edCanvas.height = Math.round(img.height * scale);
+    _edCtx.drawImage(img, 0, 0, _edCanvas.width, _edCanvas.height);
+  };
+  img.src = base64;
+}
+
+function editorConfirmar() {
+  if (!_edCanvas) return;
+  const base64 = _edCanvas.toDataURL('image/jpeg', 0.85);
+  fotoOcorrenciaAtual = { nome: _edNome, tipo: 'image/jpeg',
+    tamanho: Math.round(base64.length * 0.75), data: base64,
+    dataUpload: new Date().toISOString() };
+  mostrarPreviewFotoOcorrencia(base64, _edNome);
+  document.getElementById('modal-editor-foto').classList.remove('open');
+}
+
+function editorCancelar() {
+  document.getElementById('modal-editor-foto').classList.remove('open');
+  document.getElementById('ocorrencia-foto-camera').value = '';
+  document.getElementById('ocorrencia-foto-upload').value = '';
+}
+
+function editorSelecionarCor(el) {
+  document.querySelectorAll('.cor-chip').forEach(c => c.classList.remove('ativa'));
+  el.classList.add('ativa');
+  _edCor = el.dataset.cor;
+}
+
+function editorSelecionarEsp(el) {
+  document.querySelectorAll('.esp-btn').forEach(b => b.classList.remove('ativa'));
+  el.classList.add('ativa');
+  _edEsp = parseInt(el.dataset.esp);
+}
+
+function editorDesfazer() {
+  if (!_edCtx || !_edHistorico.length) return;
+  _edHistorico.pop();
+  if (_edHistorico.length) {
+    _edCtx.putImageData(_edHistorico[_edHistorico.length - 1], 0, 0);
+  } else {
+    const img = new Image();
+    img.onload = () => _edCtx.drawImage(img, 0, 0, _edCanvas.width, _edCanvas.height);
+    img.src = _edImageBase;
+  }
+}
+
+function editorLimpar() {
+  if (!_edCtx) return;
+  _edHistorico = [];
+  const img = new Image();
+  img.onload = () => _edCtx.drawImage(img, 0, 0, _edCanvas.width, _edCanvas.height);
+  img.src = _edImageBase;
+}
+
+function _edPos(e) {
+  const r = _edCanvas.getBoundingClientRect();
+  const sx = _edCanvas.width / r.width, sy = _edCanvas.height / r.height;
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - r.left) * sx, y: (src.clientY - r.top) * sy };
+}
+
+function _edIniciar(e) {
+  e.preventDefault();
+  _edDesenhando = true;
+  _edHistorico.push(_edCtx.getImageData(0, 0, _edCanvas.width, _edCanvas.height));
+  const p = _edPos(e);
+  _edUltimoX = p.x; _edUltimoY = p.y;
+  _edCtx.beginPath();
+  _edCtx.arc(p.x, p.y, _edEsp / 2, 0, Math.PI * 2);
+  _edCtx.fillStyle = _edCor;
+  _edCtx.fill();
+}
+
+function _edMover(e) {
+  if (!_edDesenhando) return;
+  e.preventDefault();
+  const p = _edPos(e);
+  _edCtx.beginPath();
+  _edCtx.moveTo(_edUltimoX, _edUltimoY);
+  _edCtx.lineTo(p.x, p.y);
+  _edCtx.strokeStyle = _edCor;
+  _edCtx.lineWidth = _edEsp;
+  _edCtx.lineCap = 'round';
+  _edCtx.lineJoin = 'round';
+  _edCtx.stroke();
+  _edUltimoX = p.x; _edUltimoY = p.y;
+}
+
+function _edParar() { _edDesenhando = false; }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const c = document.getElementById('canvas-editor');
+  if (!c) return;
+  c.addEventListener('mousedown',  _edIniciar, { passive: false });
+  c.addEventListener('mousemove',  _edMover,   { passive: false });
+  c.addEventListener('mouseup',    _edParar);
+  c.addEventListener('mouseleave', _edParar);
+  c.addEventListener('touchstart', _edIniciar, { passive: false });
+  c.addEventListener('touchmove',  _edMover,   { passive: false });
+  c.addEventListener('touchend',   _edParar);
+});
+// ──────────────────────────────────────────────────────────────────────────────
 
 // Comprime imagem usando Canvas — reduz para maxWidth e qualidade JPEG
 function comprimirImagem(file, maxWidth = 800, qualidade = 0.7) {
@@ -6519,6 +6642,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="fecharModal('modal-selecionar-template-fvm')">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<!-- EDITOR DE FOTO COM DESENHO -->
+<div id="modal-editor-foto">
+  <div class="editor-toolbar">
+    <span class="editor-label">Cor:</span>
+    <div class="cor-chip ativa" data-cor="#ffffff" style="background:#ffffff" onclick="editorSelecionarCor(this)" title="Branco"></div>
+    <div class="cor-chip" data-cor="#ef4444" style="background:#ef4444" onclick="editorSelecionarCor(this)" title="Vermelho"></div>
+    <div class="cor-chip" data-cor="#f59e0b" style="background:#f59e0b" onclick="editorSelecionarCor(this)" title="Amarelo"></div>
+    <div class="cor-chip" data-cor="#22c55e" style="background:#22c55e" onclick="editorSelecionarCor(this)" title="Verde"></div>
+    <div class="cor-chip" data-cor="#3b82f6" style="background:#3b82f6" onclick="editorSelecionarCor(this)" title="Azul"></div>
+    <div class="cor-chip escura" data-cor="#000000" style="background:#000000" onclick="editorSelecionarCor(this)" title="Preto"></div>
+    <div style="width:1px;height:22px;background:var(--border);margin:0 2px"></div>
+    <span class="editor-label">Traço:</span>
+    <button class="esp-btn ativa" data-esp="3" onclick="editorSelecionarEsp(this)">Fino</button>
+    <button class="esp-btn" data-esp="7" onclick="editorSelecionarEsp(this)">Médio</button>
+    <button class="esp-btn" data-esp="14" onclick="editorSelecionarEsp(this)">Grosso</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-ghost btn-sm" onclick="editorDesfazer()" title="Desfazer último traço">↩ Desfazer</button>
+    <button class="btn btn-ghost btn-sm" onclick="editorLimpar()" title="Limpar todos os desenhos">🗑 Limpar</button>
+  </div>
+  <div class="editor-canvas-area">
+    <canvas id="canvas-editor"></canvas>
+  </div>
+  <div class="editor-footer">
+    <button class="btn btn-secondary" onclick="editorCancelar()">Cancelar</button>
+    <button class="btn btn-primary" onclick="editorConfirmar()">✓ Confirmar foto</button>
   </div>
 </div>
 
