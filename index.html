@@ -1874,7 +1874,8 @@ function renderOcorrenciasFVS(ocorrencias) {
       </div>
       ${oc.acao ? `<div style="font-size:12px;color:var(--text3);margin-bottom:4px"><strong style="color:var(--text2)">Ação:</strong> ${oc.acao}</div>` : ''}
       ${oc.rc_foto?.data ? `<div style="margin-top:8px"><a href="#" onclick="verFotoNC(event,'${oc.id}')" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Ver foto da não conformidade</a></div>` : ''}
-      ${window.fvsAtual?.status !== 'encerrada' && !rc ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" onclick="marcarCorrigida('${oc.fvs_id}','${oc.id}')">✓ Marcar como corrigida (RC)</button></div>` : ''}
+      ${oc.foto_correcao?.data ? `<div style="margin-top:4px"><a href="#" onclick="verFotoCorrecao(event,'${oc.id}')" style="font-size:11px;color:var(--green);text-decoration:none">📷 Ver foto da correção</a></div>` : ''}
+      ${window.fvsAtual?.status !== 'encerrada' && !rc ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" onclick="abrirModalRC('${oc.fvs_id}','${oc.id}')">✓ Marcar como corrigida (RC)</button></div>` : ''}
     </div>`;
   };
 
@@ -2258,10 +2259,13 @@ async function processarFotoOcorrencia(input) {
 let _edCtx = null, _edCanvas = null, _edImageBase = null, _edNome = '';
 let _edDesenhando = false, _edCor = '#ffffff', _edEsp = 3;
 let _edHistorico = [], _edUltimoX = 0, _edUltimoY = 0;
+let _edOnConfirm = null, _edOnCancel = null;
 
-function editorAbrirModal(base64, nome) {
+function editorAbrirModal(base64, nome, onConfirm, onCancel) {
   _edImageBase = base64;
   _edNome = nome;
+  _edOnConfirm = onConfirm || null;
+  _edOnCancel  = onCancel  || null;
   _edHistorico = [];
   document.getElementById('modal-editor-foto').classList.add('open');
   _edCanvas = document.getElementById('canvas-editor');
@@ -2282,17 +2286,22 @@ function editorAbrirModal(base64, nome) {
 function editorConfirmar() {
   if (!_edCanvas) return;
   const base64 = _edCanvas.toDataURL('image/jpeg', 0.85);
-  fotoOcorrenciaAtual = { nome: _edNome, tipo: 'image/jpeg',
+  const foto = { nome: _edNome, tipo: 'image/jpeg',
     tamanho: Math.round(base64.length * 0.75), data: base64,
     dataUpload: new Date().toISOString() };
-  mostrarPreviewFotoOcorrencia(base64, _edNome);
   document.getElementById('modal-editor-foto').classList.remove('open');
+  if (_edOnConfirm) { _edOnConfirm(foto); } else {
+    fotoOcorrenciaAtual = foto;
+    mostrarPreviewFotoOcorrencia(foto.data, foto.nome);
+  }
 }
 
 function editorCancelar() {
   document.getElementById('modal-editor-foto').classList.remove('open');
-  document.getElementById('ocorrencia-foto-camera').value = '';
-  document.getElementById('ocorrencia-foto-upload').value = '';
+  if (_edOnCancel) { _edOnCancel(); } else {
+    document.getElementById('ocorrencia-foto-camera').value = '';
+    document.getElementById('ocorrencia-foto-upload').value = '';
+  }
 }
 
 function editorSelecionarCor(el) {
@@ -2439,15 +2448,19 @@ function removerFotoOcorrencia() {
   document.getElementById('ocorrencia-foto-upload').value = '';
 }
 
-function verFotoNC(event, ocorrenciaId) {
+function verFotoCorrecao(event, ocorrenciaId) {
   event.preventDefault();
   const oc = (window.fvsAtual?.ocorrencias || []).find(o => o.id === ocorrenciaId);
-  if (!oc?.rc_foto?.data) { toast('Foto não encontrada', 'error'); return; }
+  if (!oc?.foto_correcao?.data) { toast('Foto não encontrada', 'error'); return; }
+  _abrirLightbox(oc.foto_correcao.data);
+}
+
+function _abrirLightbox(src) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = () => overlay.remove();
   const img = document.createElement('img');
-  img.src = oc.rc_foto.data;
+  img.src = src;
   img.style.cssText = 'max-width:100%;max-height:90vh;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.6)';
   img.onclick = e => e.stopPropagation();
   const close = document.createElement('button');
@@ -2459,14 +2472,78 @@ function verFotoNC(event, ocorrenciaId) {
   document.body.appendChild(overlay);
 }
 
-async function marcarCorrigida(fvsId, ocorrenciaId) {
+function verFotoNC(event, ocorrenciaId) {
+  event.preventDefault();
+  const oc = (window.fvsAtual?.ocorrencias || []).find(o => o.id === ocorrenciaId);
+  if (!oc?.rc_foto?.data) { toast('Foto não encontrada', 'error'); return; }
+  _abrirLightbox(oc.rc_foto.data);
+}
+
+// ─── MODAL REGISTRAR CORREÇÃO (RC) ────────────────────────────────────────────
+let _rcFvsId = null, _rcOcorrenciaId = null, _rcFoto = null;
+
+function abrirModalRC(fvsId, ocorrenciaId) {
+  _rcFvsId = fvsId;
+  _rcOcorrenciaId = ocorrenciaId;
+  _rcFoto = null;
+  document.getElementById('rc-foto-preview').style.display = 'none';
+  document.getElementById('rc-foto-img').src = '';
+  document.getElementById('rc-foto-nome').textContent = '';
+  document.getElementById('rc-foto-camera').value = '';
+  document.getElementById('rc-foto-upload').value = '';
+  document.getElementById('modal-rc').classList.add('open');
+}
+
+function rcCancelar() {
+  document.getElementById('modal-rc').classList.remove('open');
+}
+
+function rcAbrirCamera()  { document.getElementById('rc-foto-camera').click(); }
+function rcAbrirGaleria() { document.getElementById('rc-foto-upload').click(); }
+
+async function rcProcessarFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Selecione uma imagem válida', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast('Imagem deve ter no máximo 10MB', 'error'); return; }
+  try {
+    const base64 = await comprimirImagem(file, 1200, 0.85);
+    editorAbrirModal(base64, file.name,
+      (foto) => { _rcFoto = foto; rcMostrarPreview(foto); },
+      ()     => { input.value = ''; }
+    );
+  } catch(e) { toast('Erro ao processar foto', 'error'); }
+}
+
+function rcMostrarPreview(foto) {
+  document.getElementById('rc-foto-img').src = foto.data;
+  document.getElementById('rc-foto-nome').textContent = foto.nome;
+  document.getElementById('rc-foto-preview').style.display = 'flex';
+}
+
+function rcRemoverFoto() {
+  _rcFoto = null;
+  document.getElementById('rc-foto-preview').style.display = 'none';
+  document.getElementById('rc-foto-camera').value = '';
+  document.getElementById('rc-foto-upload').value = '';
+}
+
+async function rcConfirmar() {
+  if (!_rcFoto) { toast('Anexe a foto da correção antes de confirmar', 'error'); return; }
+  await marcarCorrigida(_rcFvsId, _rcOcorrenciaId, _rcFoto);
+  document.getElementById('modal-rc').classList.remove('open');
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
+async function marcarCorrigida(fvsId, ocorrenciaId, fotoCorrecao) {
   try {
     const client = await esperarSupabase();
     
     // Atualizar ocorrência para encerrada
     await client.update('ocorrencias', ocorrenciaId, {
       status: 'encerrada',
-      fechamento: new Date().toISOString()
+      fechamento: new Date().toISOString(),
+      foto_correcao: fotoCorrecao || null
     });
     
     // Atualizar célula na grade para RC
@@ -6641,6 +6718,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="fecharModal('modal-selecionar-template-fvm')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR CORREÇÃO (RC) -->
+<div id="modal-rc" class="modal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <h3 style="font-family:var(--font-cond);font-size:16px;font-weight:600">Registrar Correção</h3>
+      <button class="btn btn-ghost btn-sm" onclick="rcCancelar()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+      <p style="font-size:13px;color:var(--text2)">Anexe a foto comprovando a correção da não conformidade. <strong style="color:var(--accent)">Obrigatório.</strong></p>
+      <div class="field">
+        <label>Foto da Correção *</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="rcAbrirCamera()">📷 Câmera</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="rcAbrirGaleria()">🖼 Galeria</button>
+        </div>
+        <input type="file" id="rc-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="rcProcessarFoto(this)">
+        <input type="file" id="rc-foto-upload" accept="image/*" style="display:none" onchange="rcProcessarFoto(this)">
+        <div id="rc-foto-preview" style="display:none;align-items:center;gap:10px;padding:8px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+          <img id="rc-foto-img" src="" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:4px">
+          <div style="flex:1;min-width:0">
+            <div id="rc-foto-nome" style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px">✓ Foto anexada</div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-xs" onclick="rcRemoverFoto()">🗑</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border)">
+      <button class="btn btn-secondary" onclick="rcCancelar()">Cancelar</button>
+      <button class="btn btn-primary" onclick="rcConfirmar()">✓ Confirmar correção</button>
     </div>
   </div>
 </div>
