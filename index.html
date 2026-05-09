@@ -4355,135 +4355,227 @@ function calcularProximaRevisao(revisaoAtual) {
   return `Rev. ${String(numero + 1).padStart(2, '0')}`;
 }
 
-// ─── TEMPLATE IS ──────────────────────────────────────────────────────────────
+// ─── INSTRUÇÃO DE SERVIÇO (IS) ────────────────────────────────────────────────
+let _isFvsId = null, _isArquivoAtual = null, _isNovaRevisao = false, _isRegistroId = null;
+
 async function renderTemplatesIS(m) {
   try {
     const client = await esperarSupabase();
-    const [templatesIS, templatesFVS] = await Promise.all([
-      client.get('templates_is', { status: 'vigor' }),
-      client.getTemplatesFVS()
+    const [fvsList, obras, isRegistros] = await Promise.all([
+      client.getFVS(),
+      client.getObras(),
+      client.get('fvs_is', {})
     ]);
 
-    window._templatesFVSCache = templatesFVS;
-    const fvsMap = {};
-    templatesFVS.forEach(f => { fvsMap[f.id] = f; });
+    const obraMap = {};
+    obras.forEach(o => { obraMap[o.id] = o; });
 
-    templatesIS.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
+    // Pegar IS vigente por fvs_id (mais recente)
+    const isMap = {};
+    isRegistros.forEach(r => {
+      if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) {
+        isMap[r.fvs_id] = r;
+      }
+    });
 
+    fvsList.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
     const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
 
     m.innerHTML = `
       <div class="page-header">
         <div>
-          <div class="page-title">Templates IS</div>
-          <div class="page-sub">${templatesIS.length} template${templatesIS.length !== 1 ? 's' : ''}</div>
+          <div class="page-title">Instruções de Serviço (IS)</div>
+          <div class="page-sub">${fvsList.length} FVS · ${Object.keys(isMap).length} com IS anexada</div>
         </div>
-        ${pA ? '<button class="btn btn-primary" onclick="abrirEditorTemplateIS()">+ Novo Template IS</button>' : ''}
       </div>
       <div class="table-wrap"><div class="table-scroll"><table>
-        <thead><tr><th>Serviço / FVS</th><th>Revisão</th><th>Tipo de serviço</th><th>Ações</th></tr></thead>
+        <thead><tr>
+          <th>Código</th><th>Serviço</th><th>Obra</th>
+          <th>Status FVS</th><th>IS Vigente</th><th>Ações</th>
+        </tr></thead>
         <tbody>
-          ${templatesIS.map(t => `<tr>
-            <td style="font-weight:500;color:var(--text)">${t.servico || '—'}</td>
-            <td><span class="tag tag-rev">${t.revisao_atual || 'Rev. 00'}</span></td>
-            <td style="font-size:11px;color:var(--text3)">${t.disciplina || '—'}</td>
-            <td class="td-acoes"><div style="display:flex;gap:6px">
-              ${pA ? `<button class="btn btn-secondary btn-xs" onclick="abrirEditorTemplateIS('${t.id}')">Editar</button>` : ''}
-            </div></td>
-          </tr>`).join('')}
-          ${!templatesIS.length ? `<tr><td colspan="4">
-            <div class="empty">
-              <div class="empty-icon">📋</div>
-              <div class="empty-title">Nenhum template IS cadastrado</div>
-              <div class="empty-sub">Crie o primeiro template IS clicando em "+ Novo Template IS"</div>
-            </div>
-          </td></tr>` : ''}
+          ${fvsList.map(fvs => {
+            const obra = obraMap[fvs.obra_id];
+            const is   = isMap[fvs.id];
+            const isInfo = is
+              ? `<div style="display:flex;align-items:center;gap:6px"><span class="tag tag-ok" style="font-size:10px">${is.versao}</span><span style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px" title="${is.arquivo_nome}">${is.arquivo_nome}</span></div>`
+              : `<span style="font-size:11px;color:var(--text3)">Não anexada</span>`;
+            const acoes = pA ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${is
+                ? `<button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${is.arquivo_url}','${is.arquivo_tipo}')">📄 Ver IS</button>
+                   <button class="btn btn-secondary btn-xs" onclick="isAbrirUpload('${fvs.id}','${fvs.cod} — ${fvs.servico}',true,'${is.id}')">↑ Nova Revisão</button>
+                   <button class="btn btn-ghost btn-xs" onclick="isVerHistorico('${fvs.id}')">Histórico</button>`
+                : `<button class="btn btn-primary btn-xs" onclick="isAbrirUpload('${fvs.id}','${fvs.cod} — ${fvs.servico}',false,null)">+ Anexar IS</button>`}
+            </div>` : '—';
+            return `<tr>
+              <td style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${fvs.cod}</td>
+              <td style="font-weight:500;color:var(--text)">${fvs.servico}</td>
+              <td style="font-size:12px;color:var(--text2)">${obra?.nome || '—'}</td>
+              <td><span class="tag ${fvs.status === 'andamento' ? 'tag-and' : 'tag-ok'}">${fvs.status === 'andamento' ? 'EM ANDAMENTO' : 'ENCERRADA'}</span></td>
+              <td>${isInfo}</td>
+              <td class="td-acoes">${acoes}</td>
+            </tr>`;
+          }).join('')}
+          ${!fvsList.length ? `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma FVS cadastrada</div></div></td></tr>` : ''}
         </tbody>
       </table></div></div>`;
   } catch (e) {
-    console.error('Erro ao renderizar templates IS:', e);
-    m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar templates IS</div></div>';
+    console.error('Erro ao renderizar IS:', e);
+    m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar</div></div>';
   }
 }
 
-let _isEditId = null;
-
-async function abrirEditorTemplateIS(id = null) {
-  _isEditId = id;
-
-  if (!window._templatesFVSCache) {
-    const client = await esperarSupabase();
-    window._templatesFVSCache = await client.getTemplatesFVS();
-  }
-  const fvsList = window._templatesFVSCache || [];
-
-  let isAtual = null;
-  if (id) {
-    const client = await esperarSupabase();
-    const todos = await client.get('templates_is', {});
-    isAtual = todos.find(t => t.id === id);
-  }
-
-  const fvsOptions = fvsList
-    .map(f => `<option value="${f.id}" data-disciplina="${f.disciplina || ''}" ${isAtual?.fvs_id === f.id ? 'selected' : ''}>${f.servico}</option>`)
-    .join('');
-
-  document.getElementById('is-fvs').innerHTML = '<option value="">Selecione uma FVS...</option>' + fvsOptions;
-  document.getElementById('is-servico').value   = isAtual?.servico    || '';
-  document.getElementById('is-disciplina').value = isAtual?.disciplina || '';
-  document.getElementById('modal-is-titulo').textContent = id ? 'Editar Template IS' : 'Novo Template IS';
-
-  if (isAtual?.fvs_id) {
-    document.getElementById('is-fvs').value = isAtual.fvs_id;
-    isPreencherFVS();
-  }
-
+function isAbrirUpload(fvsId, fvsInfo, novaRevisao, registroId) {
+  _isFvsId      = fvsId;
+  _isNovaRevisao = novaRevisao;
+  _isRegistroId  = registroId;
+  _isArquivoAtual = null;
+  document.getElementById('modal-is-titulo').textContent    = novaRevisao ? 'Nova Revisão IS' : 'Anexar IS';
+  document.getElementById('modal-is-fvs-info').textContent  = fvsInfo;
+  document.getElementById('is-btn-salvar').textContent      = novaRevisao ? 'Publicar Nova Revisão' : 'Anexar IS';
+  document.getElementById('is-btn-salvar').disabled         = false;
+  document.getElementById('is-file-input').value            = '';
+  document.getElementById('is-file-preview').style.display  = 'none';
+  document.getElementById('is-drop-area').style.display     = 'block';
+  document.getElementById('is-upload-progress').style.display = 'none';
   document.getElementById('modal-template-is').classList.add('open');
-}
-
-function isPreencherFVS() {
-  const sel = document.getElementById('is-fvs');
-  const fvs = (window._templatesFVSCache || []).find(f => f.id === sel.value);
-  document.getElementById('is-servico').value    = fvs?.servico    || '';
-  document.getElementById('is-disciplina').value = fvs?.disciplina || '';
 }
 
 function fecharModalTemplateIS() {
   document.getElementById('modal-template-is').classList.remove('open');
 }
 
-async function salvarTemplateIS() {
-  const fvsId     = document.getElementById('is-fvs').value;
-  const servico   = document.getElementById('is-servico').value;
-  const disciplina = document.getElementById('is-disciplina').value;
+function isOnDragOver(e) {
+  e.preventDefault();
+  document.getElementById('is-drop-area').style.borderColor = 'var(--accent)';
+}
+function isOnDragLeave() {
+  document.getElementById('is-drop-area').style.borderColor = 'var(--border2)';
+}
+function isOnDrop(e) {
+  e.preventDefault();
+  isOnDragLeave();
+  const file = e.dataTransfer.files[0];
+  if (file) isProcessarArquivo(file);
+}
+function isOnFileSelect(input) {
+  if (input.files[0]) isProcessarArquivo(input.files[0]);
+}
 
-  if (!fvsId) { toast('Selecione a FVS vinculada', 'error'); return; }
-
-  try {
-    const client = await esperarSupabase();
-
-    if (_isEditId) {
-      const todos  = await client.get('templates_is', {});
-      const atual  = todos.find(t => t.id === _isEditId);
-      const revAtual = atual?.revisao_atual || 'Rev. 00';
-      const proxRev  = calcularProximaRevisao(revAtual);
-      const historico = [...(atual?.historico || []), { rev: revAtual, data: new Date().toISOString() }];
-      await client.update('templates_is', _isEditId, { fvs_id: fvsId, servico, disciplina, revisao_atual: proxRev, historico });
-      toast(`Template IS atualizado (${proxRev})!`, 'success');
-    } else {
-      await client.insert('templates_is', {
-        id: 'is' + Date.now(), fvs_id: fvsId, servico, disciplina,
-        revisao_atual: 'Rev. 00', status: 'vigor', historico: []
-      });
-      toast('Template IS criado com sucesso!', 'success');
-    }
-
-    fecharModalTemplateIS();
-    renderTemplatesIS(document.getElementById('main'));
-  } catch (e) {
-    console.error('Erro ao salvar template IS:', e);
-    toast('Erro ao salvar template IS', 'error');
+function isProcessarArquivo(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['pdf', 'docx'].includes(ext)) {
+    toast('Apenas PDF e DOCX são aceitos', 'error'); return;
   }
+  if (file.size > 10 * 1024 * 1024) {
+    toast('Arquivo deve ter no máximo 10MB', 'error'); return;
+  }
+  _isArquivoAtual = file;
+  document.getElementById('is-drop-area').style.display    = 'none';
+  document.getElementById('is-file-icon').textContent      = ext === 'pdf' ? '📕' : '📘';
+  document.getElementById('is-file-nome').textContent      = file.name;
+  document.getElementById('is-file-tamanho').textContent   = `${(file.size / 1024).toFixed(0)} KB · ${ext.toUpperCase()}`;
+  document.getElementById('is-file-preview').style.display = 'flex';
+}
+
+function isRemoverArquivo() {
+  _isArquivoAtual = null;
+  document.getElementById('is-file-input').value           = '';
+  document.getElementById('is-file-preview').style.display = 'none';
+  document.getElementById('is-drop-area').style.display    = 'block';
+}
+
+async function salvarTemplateIS() {
+  if (!_isArquivoAtual) { toast('Selecione um arquivo IS', 'error'); return; }
+  const btn = document.getElementById('is-btn-salvar');
+  btn.disabled = true;
+  const prog = document.getElementById('is-upload-progress');
+  prog.style.display = 'block';
+  const setP = (pct, label) => {
+    document.getElementById('is-progress-bar').style.width  = pct + '%';
+    document.getElementById('is-progress-label').textContent = label;
+  };
+  try {
+    setP(20, 'Preparando arquivo...');
+    const client = await esperarSupabase();
+    const ext  = _isArquivoAtual.name.split('.').pop().toLowerCase();
+    const path = `is/${_isFvsId}/${Date.now()}.${ext}`;
+    setP(40, 'Enviando arquivo...');
+    const url = await client.uploadArquivoIS(_isArquivoAtual, path);
+    setP(70, 'Salvando registro...');
+    let versao = 'Rev. 00', historico = [];
+    if (_isNovaRevisao && _isRegistroId) {
+      const todos = await client.get('fvs_is', { fvs_id: _isFvsId });
+      const atual = todos.find(r => r.id === _isRegistroId);
+      if (atual) {
+        const n = parseInt((atual.versao || 'Rev. 00').replace('Rev. ', ''));
+        versao   = `Rev. ${String(n + 1).padStart(2, '0')}`;
+        historico = [...(atual.historico || []), {
+          versao: atual.versao, arquivo_nome: atual.arquivo_nome,
+          arquivo_url: atual.arquivo_url, arquivo_tipo: atual.arquivo_tipo,
+          data_upload: atual.data_upload
+        }];
+        await client.remove('fvs_is', _isRegistroId);
+      }
+    }
+    await client.insert('fvs_is', {
+      id: 'is' + Date.now(), fvs_id: _isFvsId, versao,
+      arquivo_nome: _isArquivoAtual.name, arquivo_tipo: ext,
+      arquivo_url: url, arquivo_path: path,
+      data_upload: new Date().toISOString(),
+      usuario_id: usuarioAtual?.id || '', historico
+    });
+    setP(100, 'Concluído!');
+    toast(_isNovaRevisao ? `Nova revisão publicada (${versao})!` : 'IS anexada com sucesso!', 'success');
+    setTimeout(() => { fecharModalTemplateIS(); renderTemplatesIS(document.getElementById('main')); }, 600);
+  } catch (e) {
+    console.error('Erro ao salvar IS:', e);
+    toast('Erro ao enviar. Verifique se o bucket "instrucoes-servico" existe no Supabase.', 'error');
+    btn.disabled = false;
+    prog.style.display = 'none';
+  }
+}
+
+function isVerArquivo(url, tipo) {
+  window.open(url, '_blank');
+}
+
+async function isVerHistorico(fvsId) {
+  const client = await esperarSupabase();
+  const todos = await client.get('fvs_is', { fvs_id: fvsId });
+  const atual = todos.sort((a, b) => b.data_upload.localeCompare(a.data_upload))[0];
+  if (!atual) { toast('Nenhum histórico encontrado', 'error'); return; }
+  const hist  = atual.historico || [];
+  if (!hist.length) { toast('Nenhuma versão anterior registrada', 'info'); return; }
+  const linhas = hist.map(h => `
+    <tr>
+      <td><span class="tag tag-rev" style="font-size:10px">${h.versao}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${h.arquivo_nome}</td>
+      <td style="font-size:11px;color:var(--text3)">${new Date(h.data_upload).toLocaleDateString('pt-BR')}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${h.arquivo_url}','${h.arquivo_tipo}')">Ver</button></td>
+    </tr>`).join('');
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2)">
+        <span style="font-family:var(--font-cond);font-size:16px;font-weight:600">Histórico de Revisões IS</span>
+        <button class="btn modal-close" onclick="this.closest('div[style*=\"fixed\"]').remove()">✕</button>
+      </div>
+      <div style="padding:16px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Revisão</th>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Arquivo</th>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Data</th>
+            <th style="border-bottom:1px solid var(--border)"></th>
+          </tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -6868,35 +6960,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 <!-- MODAL TEMPLATE IS -->
 <div id="modal-template-is" class="modal-overlay">
-  <div class="modal modal-lg">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <h2 id="modal-is-titulo" class="modal-title">Novo Template IS</h2>
+      <h2 id="modal-is-titulo" class="modal-title">Anexar IS</h2>
       <button class="btn modal-close" onclick="fecharModalTemplateIS()">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="field">
-        <label>FVS Vinculada *</label>
-        <select id="is-fvs" required onchange="isPreencherFVS()">
-          <option value="">Selecione uma FVS...</option>
-        </select>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+      <p id="modal-is-fvs-info" style="font-size:13px;color:var(--text2);margin:0;padding:10px 12px;background:var(--bg3);border-radius:var(--radius);border-left:3px solid var(--accent)"></p>
+
+      <!-- Área de drop -->
+      <div id="is-drop-area"
+           style="border:2px dashed var(--border2);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s"
+           ondragover="isOnDragOver(event)" ondragleave="isOnDragLeave()" ondrop="isOnDrop(event)"
+           onclick="document.getElementById('is-file-input').click()">
+        <div style="font-size:36px;margin-bottom:10px">📂</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:4px">Arraste o arquivo aqui</div>
+        <div style="font-size:12px;color:var(--text3)">ou clique para selecionar · PDF ou DOCX · Máx. 10 MB</div>
+        <input type="file" id="is-file-input" accept=".pdf,.docx" style="display:none" onchange="isOnFileSelect(this)">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="field">
-          <label>Serviço (da FVS)</label>
-          <input type="text" id="is-servico" readonly style="opacity:.65;cursor:not-allowed">
+
+      <!-- Preview do arquivo selecionado -->
+      <div id="is-file-preview" style="display:none;align-items:center;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
+        <span id="is-file-icon" style="font-size:28px">📕</span>
+        <div style="flex:1;min-width:0">
+          <div id="is-file-nome" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <div id="is-file-tamanho" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
         </div>
-        <div class="field">
-          <label>Tipo de serviço (da FVS)</label>
-          <input type="text" id="is-disciplina" readonly style="opacity:.65;cursor:not-allowed">
-        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="isRemoverArquivo()" title="Remover">🗑</button>
       </div>
-      <div id="is-campos-extras" style="margin-top:4px;padding:16px;background:var(--bg3);border:1px dashed var(--border2);border-radius:var(--radius);text-align:center;color:var(--text3);font-size:12px">
-        Campos específicos da IS serão adicionados em breve.
+
+      <!-- Barra de progresso -->
+      <div id="is-upload-progress" style="display:none">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="is-progress-label">Enviando...</div>
+        <div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden">
+          <div id="is-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModalTemplateIS()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarTemplateIS()">Salvar Template IS</button>
+      <button id="is-btn-salvar" class="btn btn-primary" onclick="salvarTemplateIS()">Anexar IS</button>
     </div>
   </div>
 </div>

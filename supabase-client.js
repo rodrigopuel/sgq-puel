@@ -242,6 +242,20 @@ class SupabaseClient {
     return this.get('fornecedores', filtros);
   }
 
+  async uploadArquivoIS(file, path) {
+    const { data, error } = await this.client.storage
+      .from('instrucoes-servico')
+      .upload(path, file, { upsert: false, contentType: file.type });
+
+    if (error) throw new Error('Erro no upload: ' + error.message);
+
+    const { data: urlData } = this.client.storage
+      .from('instrucoes-servico')
+      .getPublicUrl(path);
+
+    return urlData.publicUrl;
+  }
+
   // Funções para migração de dados
   async migrarDadosLocais() {
     if (!confirm('Deseja migrar todos os dados do localStorage para o Supabase? Esta ação não pode ser desfeita.')) {
