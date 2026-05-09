@@ -215,9 +215,10 @@ tr:hover td{background:var(--bg3);color:var(--text)}
 .fvs-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:8px;cursor:pointer;transition:all .15s}
 .fvs-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 
-.fvs-table{border-collapse:collapse;width:100%;font-size:12px}
+.fvs-table{border-collapse:collapse;width:auto;min-width:100%;font-size:12px}
 .fvs-table th{padding:8px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-family:var(--font-mono);font-size:10px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;font-weight:500;text-align:center}
-.fvs-table th.th-item{text-align:left;min-width:150px}
+.fvs-table th.th-item{text-align:left;min-width:75px}
+.fvs-table th:first-child,.fvs-table td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,.4)}
 .fvs-table td{border:1px solid var(--border);padding:0;vertical-align:middle}
 .fvs-table td.td-item{padding:8px 10px;background:var(--bg2);color:var(--text);font-weight:500;font-size:12px;vertical-align:top;border:1px solid var(--border)}
 .fvs-table td.td-item small{display:block;color:var(--text3);font-size:10px;font-weight:400;margin-top:2px;font-family:var(--font-mono)}
@@ -1735,13 +1736,13 @@ async function abrirFVS(fvsId) {
           </div>
         </div>
         
-        <div class="table-wrap">
+        <div class="table-wrap" style="overflow-x:auto">
         <table class="fvs-table">
           <thead>
             <tr>
-              <th class="th-item" style="width:20%">Item</th>
-              <th class="th-item" style="width:15%">Método</th>
-              <th class="th-item" style="width:15%">Tolerância</th>
+              <th class="th-item" style="width:10%;min-width:75px">Item</th>
+              <th class="th-item" style="width:8%;min-width:75px">Método</th>
+              <th class="th-item" style="width:8%;min-width:75px">Tolerância</th>
               ${(fvs.locais || []).map(local => `<th style="width:8%">${local}</th>`).join('')}
             </tr>
           </thead>
@@ -1750,9 +1751,9 @@ async function abrirFVS(fvsId) {
               console.log(`🔍 DEBUG Renderizando linha ${i}:`, { criterio: criterio.item });
               return `
               <tr>
-                <td class="td-item" style="width:20%">${criterio.item}</td>
-                <td class="td-item" style="width:15%">${criterio.metodo || ''}</td>
-                <td class="td-item" style="width:15%">${criterio.tolerancia || ''}</td>
+                <td class="td-item" style="width:10%;min-width:75px">${criterio.item}</td>
+                <td class="td-item" style="width:8%;min-width:75px">${criterio.metodo || ''}</td>
+                <td class="td-item" style="width:8%;min-width:75px">${criterio.tolerancia || ''}</td>
                 ${(fvs.locais || []).map((local, j) => {
                   const chave = `${i}-${j}`;
                   const resultado = fvs.resultados?.[chave];
