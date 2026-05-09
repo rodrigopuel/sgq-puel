@@ -4361,16 +4361,12 @@ let _isFvsId = null, _isArquivoAtual = null, _isNovaRevisao = false, _isRegistro
 async function renderTemplatesIS(m) {
   try {
     const client = await esperarSupabase();
-    const [fvsList, obras, isRegistros] = await Promise.all([
-      client.getFVS(),
-      client.getObras(),
+    const [templates, isRegistros] = await Promise.all([
+      client.get('templates_fvs', {}),
       client.get('fvs_is', {})
     ]);
 
-    const obraMap = {};
-    obras.forEach(o => { obraMap[o.id] = o; });
-
-    // Pegar IS vigente por fvs_id (mais recente)
+    // IS vigente por template id (campo fvs_id reutilizado para template_id)
     const isMap = {};
     isRegistros.forEach(r => {
       if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) {
@@ -4378,45 +4374,45 @@ async function renderTemplatesIS(m) {
       }
     });
 
-    fvsList.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
+    templates.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
     const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
 
     m.innerHTML = `
       <div class="page-header">
         <div>
           <div class="page-title">Instruções de Serviço (IS)</div>
-          <div class="page-sub">${fvsList.length} FVS · ${Object.keys(isMap).length} com IS anexada</div>
+          <div class="page-sub">${templates.length} templates · ${Object.keys(isMap).length} com IS anexada</div>
         </div>
       </div>
       <div class="table-wrap"><div class="table-scroll"><table>
         <thead><tr>
-          <th>Código</th><th>Serviço</th><th>Obra</th>
-          <th>Status FVS</th><th>IS Vigente</th><th>Ações</th>
+          <th>Serviço</th><th>Disciplina</th><th>Status</th><th>IS Vigente</th><th>Ações</th>
         </tr></thead>
         <tbody>
-          ${fvsList.map(fvs => {
-            const obra = obraMap[fvs.obra_id];
-            const is   = isMap[fvs.id];
+          ${templates.map(t => {
+            const is = isMap[t.id];
             const isInfo = is
-              ? `<div style="display:flex;align-items:center;gap:6px"><span class="tag tag-ok" style="font-size:10px">${is.versao}</span><span style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px" title="${is.arquivo_nome}">${is.arquivo_nome}</span></div>`
+              ? `<div style="display:flex;align-items:center;gap:6px">
+                   <span class="tag tag-ok" style="font-size:10px">${is.versao}</span>
+                   <span style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px" title="${is.arquivo_nome}">${is.arquivo_nome}</span>
+                 </div>`
               : `<span style="font-size:11px;color:var(--text3)">Não anexada</span>`;
             const acoes = pA ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
               ${is
                 ? `<button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${is.arquivo_url}','${is.arquivo_tipo}')">📄 Ver IS</button>
-                   <button class="btn btn-secondary btn-xs" onclick="isAbrirUpload('${fvs.id}','${fvs.cod} — ${fvs.servico}',true,'${is.id}')">↑ Nova Revisão</button>
-                   <button class="btn btn-ghost btn-xs" onclick="isVerHistorico('${fvs.id}')">Histórico</button>`
-                : `<button class="btn btn-primary btn-xs" onclick="isAbrirUpload('${fvs.id}','${fvs.cod} — ${fvs.servico}',false,null)">+ Anexar IS</button>`}
+                   <button class="btn btn-secondary btn-xs" onclick="isAbrirUpload('${t.id}','${t.servico}',true,'${is.id}')">↑ Nova Revisão</button>
+                   <button class="btn btn-ghost btn-xs" onclick="isVerHistorico('${t.id}')">Histórico</button>`
+                : `<button class="btn btn-primary btn-xs" onclick="isAbrirUpload('${t.id}','${t.servico}',false,null)">+ Anexar IS</button>`}
             </div>` : '—';
             return `<tr>
-              <td style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${fvs.cod}</td>
-              <td style="font-weight:500;color:var(--text)">${fvs.servico}</td>
-              <td style="font-size:12px;color:var(--text2)">${obra?.nome || '—'}</td>
-              <td><span class="tag ${fvs.status === 'andamento' ? 'tag-and' : 'tag-ok'}">${fvs.status === 'andamento' ? 'EM ANDAMENTO' : 'ENCERRADA'}</span></td>
+              <td style="font-weight:500;color:var(--text)">${t.servico}</td>
+              <td style="font-size:12px;color:var(--text2)">${t.disciplina || '—'}</td>
+              <td><span class="tag ${t.status === 'vigor' ? 'tag-ok' : 'tag-rev'}">${t.status === 'vigor' ? 'EM VIGOR' : 'REVISÃO'}</span></td>
               <td>${isInfo}</td>
               <td class="td-acoes">${acoes}</td>
             </tr>`;
           }).join('')}
-          ${!fvsList.length ? `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma FVS cadastrada</div></div></td></tr>` : ''}
+          ${!templates.length ? `<tr><td colspan="5"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhum template FVS cadastrado</div></div></td></tr>` : ''}
         </tbody>
       </table></div></div>`;
   } catch (e) {
