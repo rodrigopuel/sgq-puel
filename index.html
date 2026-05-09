@@ -4464,8 +4464,8 @@ function isOnFileSelect(input) {
 
 function isProcessarArquivo(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  if (!['pdf', 'docx'].includes(ext)) {
-    toast('Apenas PDF e DOCX são aceitos', 'error'); return;
+  if (ext !== 'pdf') {
+    toast('Apenas arquivos PDF são aceitos para IS', 'error'); return;
   }
   if (file.size > 10 * 1024 * 1024) {
     toast('Arquivo deve ter no máximo 10MB', 'error'); return;
@@ -6975,8 +6975,8 @@ document.addEventListener('DOMContentLoaded', async () => {
            onclick="document.getElementById('is-file-input').click()">
         <div style="font-size:36px;margin-bottom:10px">📂</div>
         <div style="font-weight:600;color:var(--text);margin-bottom:4px">Arraste o arquivo aqui</div>
-        <div style="font-size:12px;color:var(--text3)">ou clique para selecionar · PDF ou DOCX · Máx. 10 MB</div>
-        <input type="file" id="is-file-input" accept=".pdf,.docx" style="display:none" onchange="isOnFileSelect(this)">
+        <div style="font-size:12px;color:var(--text3)">ou clique para selecionar · Somente PDF · Máx. 10 MB</div>
+        <input type="file" id="is-file-input" accept=".pdf" style="display:none" onchange="isOnFileSelect(this)">
       </div>
 
       <!-- Preview do arquivo selecionado -->
