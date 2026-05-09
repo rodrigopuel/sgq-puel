@@ -380,6 +380,10 @@ td.td-cel span{font-weight:700;font-size:11px}
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 6h6M5 9h6M5 12h4"/></svg>
             Template FVM
           </div>
+          <div class="gear-menu-item" onclick="navegar('templates-is')">
+            <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v2H2zM2 7h8v2H2zM2 11h10v2H2z"/></svg>
+            Template IS
+          </div>
           <div class="gear-menu-item" onclick="navegar('fornecedores')">
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M5 6h6M5 9h4"/></svg>
             Fornecedores
@@ -650,6 +654,7 @@ async function navegar(s){
       fvm: () => renderFVM(m),
       templates: () => renderTemplates(m),
       'templates-fvm': () => renderTemplatesFVM(m),
+      'templates-is':  () => renderTemplatesIS(m),
       dossie: () => renderDossie(m),
       consultor: () => renderConsultor(m),
       fornecedores: () => renderFornecedores(m),
@@ -4350,6 +4355,138 @@ function calcularProximaRevisao(revisaoAtual) {
   return `Rev. ${String(numero + 1).padStart(2, '0')}`;
 }
 
+// ─── TEMPLATE IS ──────────────────────────────────────────────────────────────
+async function renderTemplatesIS(m) {
+  try {
+    const client = await esperarSupabase();
+    const [templatesIS, templatesFVS] = await Promise.all([
+      client.get('templates_is', { status: 'vigor' }),
+      client.getTemplatesFVS()
+    ]);
+
+    window._templatesFVSCache = templatesFVS;
+    const fvsMap = {};
+    templatesFVS.forEach(f => { fvsMap[f.id] = f; });
+
+    templatesIS.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
+
+    const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
+
+    m.innerHTML = `
+      <div class="page-header">
+        <div>
+          <div class="page-title">Templates IS</div>
+          <div class="page-sub">${templatesIS.length} template${templatesIS.length !== 1 ? 's' : ''}</div>
+        </div>
+        ${pA ? '<button class="btn btn-primary" onclick="abrirEditorTemplateIS()">+ Novo Template IS</button>' : ''}
+      </div>
+      <div class="table-wrap"><div class="table-scroll"><table>
+        <thead><tr><th>Serviço / FVS</th><th>Revisão</th><th>Tipo de serviço</th><th>Ações</th></tr></thead>
+        <tbody>
+          ${templatesIS.map(t => `<tr>
+            <td style="font-weight:500;color:var(--text)">${t.servico || '—'}</td>
+            <td><span class="tag tag-rev">${t.revisao_atual || 'Rev. 00'}</span></td>
+            <td style="font-size:11px;color:var(--text3)">${t.disciplina || '—'}</td>
+            <td class="td-acoes"><div style="display:flex;gap:6px">
+              ${pA ? `<button class="btn btn-secondary btn-xs" onclick="abrirEditorTemplateIS('${t.id}')">Editar</button>` : ''}
+            </div></td>
+          </tr>`).join('')}
+          ${!templatesIS.length ? `<tr><td colspan="4">
+            <div class="empty">
+              <div class="empty-icon">📋</div>
+              <div class="empty-title">Nenhum template IS cadastrado</div>
+              <div class="empty-sub">Crie o primeiro template IS clicando em "+ Novo Template IS"</div>
+            </div>
+          </td></tr>` : ''}
+        </tbody>
+      </table></div></div>`;
+  } catch (e) {
+    console.error('Erro ao renderizar templates IS:', e);
+    m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar templates IS</div></div>';
+  }
+}
+
+let _isEditId = null;
+
+async function abrirEditorTemplateIS(id = null) {
+  _isEditId = id;
+
+  if (!window._templatesFVSCache) {
+    const client = await esperarSupabase();
+    window._templatesFVSCache = await client.getTemplatesFVS();
+  }
+  const fvsList = window._templatesFVSCache || [];
+
+  let isAtual = null;
+  if (id) {
+    const client = await esperarSupabase();
+    const todos = await client.get('templates_is', {});
+    isAtual = todos.find(t => t.id === id);
+  }
+
+  const fvsOptions = fvsList
+    .map(f => `<option value="${f.id}" data-disciplina="${f.disciplina || ''}" ${isAtual?.fvs_id === f.id ? 'selected' : ''}>${f.servico}</option>`)
+    .join('');
+
+  document.getElementById('is-fvs').innerHTML = '<option value="">Selecione uma FVS...</option>' + fvsOptions;
+  document.getElementById('is-servico').value   = isAtual?.servico    || '';
+  document.getElementById('is-disciplina').value = isAtual?.disciplina || '';
+  document.getElementById('modal-is-titulo').textContent = id ? 'Editar Template IS' : 'Novo Template IS';
+
+  if (isAtual?.fvs_id) {
+    document.getElementById('is-fvs').value = isAtual.fvs_id;
+    isPreencherFVS();
+  }
+
+  document.getElementById('modal-template-is').classList.add('open');
+}
+
+function isPreencherFVS() {
+  const sel = document.getElementById('is-fvs');
+  const fvs = (window._templatesFVSCache || []).find(f => f.id === sel.value);
+  document.getElementById('is-servico').value    = fvs?.servico    || '';
+  document.getElementById('is-disciplina').value = fvs?.disciplina || '';
+}
+
+function fecharModalTemplateIS() {
+  document.getElementById('modal-template-is').classList.remove('open');
+}
+
+async function salvarTemplateIS() {
+  const fvsId     = document.getElementById('is-fvs').value;
+  const servico   = document.getElementById('is-servico').value;
+  const disciplina = document.getElementById('is-disciplina').value;
+
+  if (!fvsId) { toast('Selecione a FVS vinculada', 'error'); return; }
+
+  try {
+    const client = await esperarSupabase();
+
+    if (_isEditId) {
+      const todos  = await client.get('templates_is', {});
+      const atual  = todos.find(t => t.id === _isEditId);
+      const revAtual = atual?.revisao_atual || 'Rev. 00';
+      const proxRev  = calcularProximaRevisao(revAtual);
+      const historico = [...(atual?.historico || []), { rev: revAtual, data: new Date().toISOString() }];
+      await client.update('templates_is', _isEditId, { fvs_id: fvsId, servico, disciplina, revisao_atual: proxRev, historico });
+      toast(`Template IS atualizado (${proxRev})!`, 'success');
+    } else {
+      await client.insert('templates_is', {
+        id: 'is' + Date.now(), fvs_id: fvsId, servico, disciplina,
+        revisao_atual: 'Rev. 00', status: 'vigor', historico: []
+      });
+      toast('Template IS criado com sucesso!', 'success');
+    }
+
+    fecharModalTemplateIS();
+    renderTemplatesIS(document.getElementById('main'));
+  } catch (e) {
+    console.error('Erro ao salvar template IS:', e);
+    toast('Erro ao salvar template IS', 'error');
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 async function renderTemplatesFVM(m){
   try {
     const client = await esperarSupabase();
@@ -6725,6 +6862,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="fecharModal('modal-selecionar-template-fvm')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TEMPLATE IS -->
+<div id="modal-template-is" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="modal-is-titulo" class="modal-title">Novo Template IS</h2>
+      <button class="btn modal-close" onclick="fecharModalTemplateIS()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>FVS Vinculada *</label>
+        <select id="is-fvs" required onchange="isPreencherFVS()">
+          <option value="">Selecione uma FVS...</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field">
+          <label>Serviço (da FVS)</label>
+          <input type="text" id="is-servico" readonly style="opacity:.65;cursor:not-allowed">
+        </div>
+        <div class="field">
+          <label>Tipo de serviço (da FVS)</label>
+          <input type="text" id="is-disciplina" readonly style="opacity:.65;cursor:not-allowed">
+        </div>
+      </div>
+      <div id="is-campos-extras" style="margin-top:4px;padding:16px;background:var(--bg3);border:1px dashed var(--border2);border-radius:var(--radius);text-align:center;color:var(--text3);font-size:12px">
+        Campos específicos da IS serão adicionados em breve.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalTemplateIS()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTemplateIS()">Salvar Template IS</button>
     </div>
   </div>
 </div>

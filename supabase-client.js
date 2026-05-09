@@ -221,6 +221,10 @@ class SupabaseClient {
     return this.get('templates_fvm');
   }
 
+  async getTemplatesIS() {
+    return this.get('templates_is', { status: 'vigor' });
+  }
+
   async getFVS(filtros = {}) {
     return this.get('fvs', filtros);
   }
