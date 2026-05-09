@@ -45,27 +45,63 @@ class SupabaseClient {
   // Autenticação
   async login(email, senha) {
     try {
-      // Para compatibilidade com sistema atual, primeiro busca no banco local
-      const { data: usuario, error } = await this.client
-        .from('usuarios')
-        .select('*')
-        .eq('email', email)
-        .eq('senha', senha); // Temporário - será removido com auth
+      console.log('Tentando login com:', email, senha);
+      console.log('URL Supabase:', this.supabaseUrl);
       
-      const { data: usuarioAtivo } = await this.client
+      // Teste básico de conexão
+      const { data: testData, error: testError } = await this.client
+        .from('usuarios')
+        .select('count')
+        .limit(1);
+      
+      console.log('Teste de conexão:', testData, testError);
+      
+      // Tenta buscar sem filtros primeiro
+      const { data: todosUsuarios, error: allError } = await this.client
+        .from('usuarios')
+        .select('email, nome, ativo, senha');
+      
+      console.log('Todos os usuários (sem filtro):', todosUsuarios);
+      console.log('Erro geral:', allError);
+      
+      // Se não encontrar nada, tenta desabilitar RLS temporariamente
+      if (!todosUsuarios || todosUsuarios.length === 0) {
+        console.log('Tentando bypass RLS...');
+        const { data: bypassData, error: bypassError } = await this.client
+          .rpc('get_all_users');
+        
+        console.log('Bypass result:', bypassData, bypassError);
+      }
+      
+      // Busca usuário específico
+      const { data: usuarios, error } = await this.client
         .from('usuarios')
         .select('*')
         .eq('email', email)
         .eq('senha', senha)
-        .eq('ativo', true)
-        .single();
-
-      if (error || !usuarioAtivo) {
+        .eq('ativo', true);
+      
+      console.log('Usuários encontrados:', usuarios);
+      console.log('Erro na consulta:', error);
+      
+      if (error) {
+        console.error('Erro na consulta:', error);
+        throw new Error('Erro ao buscar usuário: ' + error.message);
+      }
+      
+      const usuario = usuarios && usuarios.length > 0 ? usuarios[0] : null;
+      
+      if (!usuario) {
+        console.log('Nenhum usuário encontrado com os critérios');
+        // Mostra todos os usuários para debug
+        if (todosUsuarios && todosUsuarios.length > 0) {
+          console.log('Usuários disponíveis:', todosUsuarios.map(u => ({email: u.email, ativo: u.ativo})));
+        }
         throw new Error('E-mail ou senha incorretos');
       }
 
-      this.usuarioAtual = usuarioAtivo;
-      return usuarioAtivo;
+      this.usuarioAtual = usuario;
+      return usuario;
     } catch (error) {
       console.error('Erro no login:', error);
       throw error;
@@ -82,7 +118,7 @@ class SupabaseClient {
     try {
       let query = this.client.from(tabela).select('*');
       
-      Object.entries(filtros).forEach([chave, valor]) => {
+      Object.entries(filtros).forEach(([chave, valor]) => {
         if (Array.isArray(valor)) {
           query = query.in(chave, valor);
         } else {
@@ -137,8 +173,7 @@ class SupabaseClient {
         .from(tabela)
         .update(dados)
         .eq('id', id)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
       return data;
@@ -150,13 +185,18 @@ class SupabaseClient {
 
   async remove(tabela, id) {
     try {
-      const { error } = await this.client
+      console.log(`Tentando remover ${tabela} com id ${id}`);
+      const { data, error } = await this.client
         .from(tabela)
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
+      console.log(`Resultado remove ${tabela}:`, { data, error });
+      
       if (error) throw error;
-      return true;
+      console.log(`${tabela} excluída com sucesso, registros afetados:`, data?.length || 0);
+      return data;
     } catch (error) {
       console.error(`Erro ao remover ${tabela}:`, error);
       throw error;
@@ -165,7 +205,7 @@ class SupabaseClient {
 
   // Funções específicas do SGQ
   async getUsuarios() {
-    return this.get('usuarios').filter(u => u.ativo);
+    return this.get('usuarios'); // Retorna todos os usuários (ativos e inativos)
   }
 
   async getObras(ativas = false) {
