@@ -950,32 +950,6 @@ async function renderDashboard(m){
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de serviço</div>${gerarDonutNCTipoServico(fvsFiltradas, templates)}</div>
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de problema</div>${gerarDonutNCTipoProblema(fvsFiltradas)}</div>
       </div>
-      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px">Instrução de Serviço (IS)</div>
-      ${fvsFiltradas.length ? `
-      <div class="table-wrap"><div class="table-scroll"><table>
-        <thead><tr>
-          <th>FVS</th><th>IS Vigente</th><th>Aplicações</th><th>Cobertura</th>
-        </tr></thead>
-        <tbody>
-          ${fvsFiltradas.map(fvs => {
-            const is  = isMap[fvs.template_id];
-            const cnt = aplPorFvs[fvs.id] || 0;
-            return `<tr>
-              <td><div style="font-weight:500;font-size:12px">${fvs.servico}</div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${fvs.cod}</div></td>
-              <td>${is ? `<span class="tag tag-ok" style="font-size:10px">${is.versao}</span>` : `<span style="font-size:11px;color:var(--text3)">Sem IS</span>`}</td>
-              <td><span style="font-size:13px;font-weight:600;color:${cnt>0?'var(--text)':'var(--text3)'}">${cnt}</span></td>
-              <td>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;min-width:60px">
-                    <div style="height:100%;width:${is?(cnt>0?'100':'30'):'0'}%;background:${cnt>0?'var(--green)':is?'var(--amber)':'var(--border2)'};border-radius:2px"></div>
-                  </div>
-                  <span style="font-size:10px;color:var(--text3);white-space:nowrap">${!is?'Sem IS':cnt>0?'Aplicada':'IS sem aplicação'}</span>
-                </div>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table></div></div>` : ''}
       `;
   } catch (error) {
     console.error('Erro no dashboard:', error);
@@ -4752,7 +4726,7 @@ async function renderAplicacaoIS(m) {
       </div>
       <div class="table-wrap"><div class="table-scroll"><table>
         <thead><tr>
-          <th>FVS</th><th>IS Vigente</th><th>Aplicações</th><th>Ações</th>
+          <th>FVS</th><th>IS Vigente</th><th>Progressão</th><th>Aplicações</th><th>Ações</th>
         </tr></thead>
         <tbody>
           ${fvsList.map(fvs => {
@@ -4766,12 +4740,20 @@ async function renderAplicacaoIS(m) {
             const aplInfo = apls.length
               ? `<div><span class="tag" style="font-size:10px;background:rgba(100,160,255,.15);color:#60a5fa;border:1px solid rgba(100,160,255,.3)">${apls.length} registro${apls.length > 1 ? 's' : ''}</span><div style="font-size:10px;color:var(--text3);margin-top:3px">Última: ${new Date(ultimaApl.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR')}</div></div>`
               : `<span style="font-size:11px;color:var(--text3)">Nenhuma aplicação</span>`;
+            const prog = calcularProgressoFVS(fvs);
+            const progBar = `<div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;min-width:80px">
+                <div style="height:100%;width:${prog.percentual}%;background:${prog.cor};border-radius:3px"></div>
+              </div>
+              <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3);white-space:nowrap">${prog.percentual}%</span>
+            </div>`;
             return `<tr>
               <td>
                 <div style="font-weight:500;font-size:13px">${fvs.servico}</div>
                 <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${fvs.cod}</div>
               </td>
               <td>${isInfo}</td>
+              <td>${progBar}</td>
               <td>${aplInfo}</td>
               <td class="td-acoes">
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -4781,7 +4763,7 @@ async function renderAplicacaoIS(m) {
               </td>
             </tr>`;
           }).join('')}
-          ${!fvsList.length ? `<tr><td colspan="4"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma FVS criada nesta obra</div></div></td></tr>` : ''}
+          ${!fvsList.length ? `<tr><td colspan="5"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma FVS criada nesta obra</div></div></td></tr>` : ''}
         </tbody>
       </table></div></div>`;
 
