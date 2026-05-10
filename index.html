@@ -777,17 +777,17 @@ function toggleGearMenu(){
 
 // Render Dashboard (adaptado para Supabase)
 function calcStats(fvs){
-  if(!fvs)return{total:0,C:0,NC:0,RC:0,NA:0,blank:0,pct:0,ica:0};
+  if(!fvs)return{total:0,C:0,NC:0,RC:0,NA:0,blank:0,pct:0,icp:0};
   let C=0,NC=0,RC=0,NA=0;
   Object.values(fvs.resultados||{}).forEach(v=>{if(v==='C')C++;else if(v==='NC')NC++;else if(v==='RC')RC++;else if(v==='NA')NA++;});
   const total=C+NC+RC+NA;
-  return{total,C,NC,RC,NA,blank:0,pct:total>0?Math.round((C+RC+NA)/total*100):0,ica:total>0?Math.round(C/total*100):0};
+  return{total,C,NC,RC,NA,blank:0,pct:total>0?Math.round((C+RC+NA)/total*100):0,icp:total>0?Math.round(C/total*100):0};
 }
 
 function statsFromFVS(fl){
   let C=0,NC=0,RC=0,NA=0,tot=0;
   fl.forEach(f=>{const s=calcStats(f);tot+=s.total;C+=s.C;NC+=s.NC;RC+=s.RC;NA+=s.NA;});
-  return{totalFVS:fl.length,encerradas:fl.filter(f=>f.status==='encerrada').length,C,NC,RC,NA,blank:tot-C-NC-RC-NA,ica:tot>0?Math.round(C/tot*100):0,ncAbertas:fl.reduce((s,f)=>s+(f.ocorrencias||[]).filter(o=>o.status==='aberta').length,0)};
+  return{totalFVS:fl.length,encerradas:fl.filter(f=>f.status==='encerrada').length,C,NC,RC,NA,blank:tot-C-NC-RC-NA,icp:tot>0?Math.round(C/tot*100):0,ncAbertas:fl.reduce((s,f)=>s+(f.ocorrencias||[]).filter(o=>o.status==='aberta').length,0)};
 }
 
 function gerarBarras(fl){
@@ -813,7 +813,7 @@ function gerarDonut(fl){
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="16"/>
       ${segs.join('')}
       <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="'Barlow Condensed'" font-weight="700" font-size="18" fill="var(--text)">${Math.round(C/tot*100)}%</text>
-      <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="'JetBrains Mono'">ICA</text>
+      <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="'JetBrains Mono'">ICP</text>
     </svg>
     <div class="donut-legenda">${labels.map((l,i)=>`<div class="donut-leg-item"><div class="donut-dot" style="background:${cors[i]}"></div>${l} <strong style="color:var(--text);margin-left:4px">${vals[i]}</strong></div>`).join('')}</div>
   </div>`;
@@ -882,7 +882,7 @@ async function renderDashboard(m){
     const totalNC = fvsFiltradas.reduce((s,f) => s + (f.ocorrencias||[]).filter(o=>o.status==='aberta').length, 0);
     let totC=0, totAll=0;
     fvsFiltradas.forEach(f => { const s=calcStats(f); totC+=s.C; totAll+=s.total; });
-    const icaGeral = totAll>0 ? Math.round(totC/totAll*100) : 0;
+    const icpGeral = totAll>0 ? Math.round(totC/totAll*100) : 0;
 
     const templates = await client.getTemplatesFVS();
 
@@ -909,7 +909,7 @@ async function renderDashboard(m){
       </div></div>
       <div class="kpi-grid">
         <div class="kpi-card k-accent"><div class="kpi-label">${obraSelecionada?'Obra selecionada':'Obras ativas'}</div><div class="kpi-value" style="color:var(--accent)">${obrasEscopo.length}</div><div class="kpi-sub">${obraSelecionada?'filtro aplicado':'em andamento'}</div></div>
-        <div class="kpi-card k-green"><div class="kpi-label">ICA Geral</div><div class="kpi-value" style="color:var(--green)">${icaGeral}%</div><div class="kpi-sub">índice de conformidade na 1ª insp.</div></div>
+        <div class="kpi-card k-green"><div class="kpi-label">ICP Geral</div><div class="kpi-value" style="color:var(--green)">${icaGeral}%</div><div class="kpi-sub">índice de conformidade na 1ª insp.</div></div>
         <div class="kpi-card k-amber"><div class="kpi-label">FVS em andamento</div><div class="kpi-value" style="color:var(--amber)">${fvsFiltradas.filter(f=>f.status==='andamento').length}</div><div class="kpi-sub">${fvsFiltradas.filter(f=>f.status==='encerrada').length} encerradas</div></div>
         <div class="kpi-card k-red"><div class="kpi-label">NC abertas</div><div class="kpi-value" style="color:var(--red)">${totalNC}</div><div class="kpi-sub">pendentes de correção</div></div>
         <div class="kpi-card k-accent"><div class="kpi-label">FVM em andamento</div><div class="kpi-value" style="color:var(--accent)">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='andamento').length}</div><div class="kpi-sub">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='encerrada').length} encerradas</div></div>
@@ -924,8 +924,8 @@ async function renderDashboard(m){
             <div><div style="font-family:var(--font-cond);font-size:16px;font-weight:600">${o.nome}</div>
             <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">${o.cod}</div></div>
             <div style="text-align:right">
-              <div style="font-family:var(--font-cond);font-size:24px;font-weight:700;color:${s.ica>=80?'var(--green)':s.ica>=60?'var(--amber)':'var(--red)'}">${s.ica}%</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">ICA</div>
+              <div style="font-family:var(--font-cond);font-size:24px;font-weight:700;color:${s.icp>=80?'var(--green)':s.icp>=60?'var(--amber)':'var(--red)'}">${s.icp}%</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">ICP</div>
             </div>
           </div>
           <div class="obra-dash-stats">
@@ -942,7 +942,7 @@ async function renderDashboard(m){
           </div>
         </div>`;}).join('')}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
-        <div class="chart-wrap"><div class="chart-title">ICA por serviço</div><div class="bar-chart">${gerarBarras(fvsFiltradas)}</div></div>
+        <div class="chart-wrap"><div class="chart-title">ICP por serviço</div><div class="bar-chart">${gerarBarras(fvsFiltradas)}</div></div>
         <div class="chart-wrap"><div class="chart-title">Distribuição de resultados</div>${gerarDonut(fvsFiltradas)}</div>
       </div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:16px 0 12px">Análise de não conformidades</div>
@@ -1324,7 +1324,7 @@ async function renderFVS(m){
             const obra = obras.find(o => o.id === fvs.obra_id);
             const ncCount = fvs.ocorrencias ? fvs.ocorrencias.filter(o => o.status === 'aberta').length : 0;
             const progresso = calcularProgressoFVS(fvs);
-            const ica = calcularICA(fvs);
+            const icp = calcularICP(fvs);
             const isVigente = isMap[fvs.template_id];
 
             return `
@@ -1348,7 +1348,7 @@ async function renderFVS(m){
                   <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
                     <div style="height:100%;width:${progresso.percentual}%;background:${progresso.percentual===100?'var(--green)':'var(--red)'};border-radius:3px"></div>
                   </div>
-                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICA ${ica}%</span>
+                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICP ${icp}%</span>
                 </div>
               </div>
             `;
@@ -1363,7 +1363,7 @@ async function renderFVS(m){
           ${encerradas.map(fvs => {
             const obra = obras.find(o => o.id === fvs.obra_id);
             const progresso = calcularProgressoFVS(fvs);
-            const ica = calcularICA(fvs);
+            const icp = calcularICP(fvs);
             const ncCount = fvs.ocorrencias ? fvs.ocorrencias.filter(o => o.status === 'aberta').length : 0;
             const isVigente = isMap[fvs.template_id];
 
@@ -1388,7 +1388,7 @@ async function renderFVS(m){
                   <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
                     <div style="height:100%;width:${progresso.percentual}%;background:${progresso.percentual===100?'var(--green)':'var(--red)'};border-radius:3px"></div>
                   </div>
-                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICA ${ica}%</span>
+                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICP ${icp}%</span>
                 </div>
               </div>
             `;
@@ -1420,9 +1420,9 @@ function calcularProgressoFVS(fvs) {
   return { percentual, cor };
 }
 
-function calcularICA(fvs) {
-  // Cálculo real do ICA (Índice de Conformidade)
-  // ICA = (Itens Conformes / Total de Itens Verificados exceto NA) * 100
+function calcularICP(fvs) {
+  // Cálculo real do ICP (Índice de Conformidade)
+  // ICP = (Itens Conformes / Total de Itens Verificados exceto NA) * 100
   const resultados = fvs.resultados || {};
   const itensVerificados = Object.keys(resultados);
   
@@ -1445,9 +1445,9 @@ function calcularICA(fvs) {
     }
   });
   
-  // Calcular ICA
-  const ica = Math.round((conformes / itensRelevantes.length) * 100);
-  return ica;
+  // Calcular ICP
+  const icp = Math.round((conformes / itensRelevantes.length) * 100);
+  return icp;
 }
 
 function abrirModalNovaFVS() {
@@ -1778,7 +1778,7 @@ async function abrirFVS(fvsId) {
             }).join('')}
           </div>
           <div style="font-size:13px;color:#fff;font-family:var(--font-mono)">
-            ICA: ${calcularICA(fvs)}% · ${calcularPercentualConcluido(fvs)}% concluído
+            ICP: ${calcularICP(fvs)}% · ${calcularPercentualConcluido(fvs)}% concluído
           </div>
         </div>
         <div style="position:relative;height:9px;background:var(--bg3);border-radius:6px;overflow:hidden">
@@ -3385,7 +3385,7 @@ function renderRelatorioConsultor(container, d) {
       </div>
     </div>
     <div class="kpi-grid" style="margin-bottom:20px">
-      <div class="kpi-card k-green"><div class="kpi-label">ICA Geral</div><div class="kpi-value" style="color:var(--${d.icaGeral>=80?'green':d.icaGeral>=60?'amber':'red'})">${d.icaGeral}%</div><div class="kpi-sub">média das obras</div></div>
+      <div class="kpi-card k-green"><div class="kpi-label">ICP Geral</div><div class="kpi-value" style="color:var(--${d.icpGeral>=80?'green':d.icpGeral>=60?'amber':'red'})">${d.icpGeral}%</div><div class="kpi-sub">média das obras</div></div>
       <div class="kpi-card k-accent"><div class="kpi-label">Obras ativas</div><div class="kpi-value" style="color:var(--accent)">${d.obrasCount}</div><div class="kpi-sub">em andamento</div></div>
       <div class="kpi-card k-red"><div class="kpi-label">NC abertas</div><div class="kpi-value" style="color:var(--red)">${d.totalNC}</div><div class="kpi-sub">${d.totalAtrasadas} atrasadas</div></div>
       <div class="kpi-card k-amber"><div class="kpi-label">FVM pendentes</div><div class="kpi-value" style="color:var(--amber)">${d.fvmPendentes}</div><div class="kpi-sub">em andamento</div></div>
@@ -3427,7 +3427,7 @@ function imprimirConsultor() {
         <div style="text-align:right"><div class="pdf-titulo">Relatório do Consultor IA</div><div class="pdf-subtitulo">Gerado em ${d.dataFormatada} às ${d.horaFormatada}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#16a34a">${d.icaGeral}%</div><div style="font-size:9px;color:#888;text-transform:uppercase;margin-top:2px">ICA Geral</div></div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#16a34a">${d.icpGeral}%</div><div style="font-size:9px;color:#888;text-transform:uppercase;margin-top:2px">ICP Geral</div></div>
         <div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:4px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#1a1a1a">${d.obrasCount}</div><div style="font-size:9px;color:#888;text-transform:uppercase;margin-top:2px">Obras ativas</div></div>
         <div style="background:#fff5f5;border:1px solid #fca5a5;border-radius:4px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#dc2626">${d.totalNC}</div><div style="font-size:9px;color:#888;text-transform:uppercase;margin-top:2px">NC abertas</div></div>
         <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:#d97706">${d.fvmPendentes}</div><div style="font-size:9px;color:#888;text-transform:uppercase;margin-top:2px">FVM pendentes</div></div>
@@ -3565,7 +3565,7 @@ async function gerarRelatorioConsultor(escopo = null) {
         const s = calcStats(f);
         totC += s.C; totAll += s.total; totNC += s.NC; totRC += s.RC; totNA += s.NA;
       });
-      const ica = totAll > 0 ? Math.round(totC / totAll * 100) : 0;
+      const icp = totAll > 0 ? Math.round(totC / totAll * 100) : 0;
 
       const ncAbertas = todasOcorrencias.filter(o => {
         const fvsDaObra = new Set(fvsObra.map(f => f.id));
@@ -3586,7 +3586,7 @@ async function gerarRelatorioConsultor(escopo = null) {
         nome: obra.nome,
         cod: obra.cod,
         engenheiro: engenheiro?.nome || '—',
-        ica,
+        icp,
         fvsTotal: fvsObra.length,
         fvsAndamento: fvsObra.filter(f => f.status === 'andamento').length,
         fvsEncerradas: fvsObra.filter(f => f.status === 'encerrada').length,
@@ -3597,7 +3597,7 @@ async function gerarRelatorioConsultor(escopo = null) {
         conformes: totC,
         naoConformes: totNC,
         reinspecionados: totRC,
-        naoAplica: totNA,
+        naoAplicp: totNA,
         totalInspecoes: totAll,
         ncDetalhe: ncAbertas.slice(0, 10).map(o => ({
           criterio: o.criterio_item,
@@ -3612,8 +3612,8 @@ async function gerarRelatorioConsultor(escopo = null) {
 
     const totalNC = resumoObras.reduce((s, o) => s + o.ncAbertas, 0);
     const totalAtrasadas = resumoObras.reduce((s, o) => s + o.ncAtrasadas, 0);
-    const icaGeral = resumoObras.length > 0
-      ? Math.round(resumoObras.reduce((s, o) => s + o.ica, 0) / resumoObras.length)
+    const icpGeral = resumoObras.length > 0
+      ? Math.round(resumoObras.reduce((s, o) => s + o.icp, 0) / resumoObras.length)
       : 0;
 
     const prompt = `Você é um consultor especialista em gestão da qualidade na construção civil, com foco em PBQP-h e NBR ISO 9001. Analise os dados do Sistema de Gestão da Qualidade da Puel Engenharia e produza um relatório executivo completo em português.
@@ -3622,7 +3622,7 @@ DATA DO RELATÓRIO: ${hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: '
 
 DADOS GERAIS:
 - Obras ativas: ${obrasAtivas.length}
-- ICA geral (média): ${icaGeral}%
+- ICP geral (média): ${icaGeral}%
 - NC abertas totais: ${totalNC}
 - NC atrasadas: ${totalAtrasadas}
 
@@ -3635,7 +3635,7 @@ Produza um relatório com as seguintes seções em Markdown. **Seja conciso e di
 Resumo geral em até 3 parágrafos curtos. Destaque os pontos mais críticos.
 
 ## 📊 Desempenho por Obra
-Máximo 3-4 linhas por obra. Destaque ICA, NC abertas e pontos críticos.
+Máximo 3-4 linhas por obra. Destaque ICP, NC abertas e pontos críticos.
 
 ## ⚠️ Alertas e Riscos
 Liste no máximo 5 alertas prioritários, do mais crítico ao menos crítico.
@@ -4721,7 +4721,7 @@ async function isReverterVersao(templateId) {
     toast('Erro ao reverter: ' + e.message, 'error');
   }
 }
-// ─── APLICAÇÃO IS ─────────────────────────────────────────────────────────────
+// ─── APLICPÇÃO IS ─────────────────────────────────────────────────────────────
 let _aplFvsId = null, _aplFotoAtual = null, _aplIsInfo = null;
 
 async function renderAplicacaoIS(m) {
@@ -5009,7 +5009,7 @@ async function aplISVerRegistro(id) {
       <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">DATA</div><div style="font-size:13px;font-weight:600">${a.data_aplicacao ? new Date(a.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</div></div>
-          <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">IS APLICADA</div><span class="tag tag-ok">${a.is_versao || '—'}</span></div>
+          <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">IS APLICPDA</div><span class="tag tag-ok">${a.is_versao || '—'}</span></div>
           <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">FVS</div><div style="font-size:12px">${fvs ? `${fvs.cod} — ${fvs.servico}` : '—'}</div></div>
           <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">LOCAL</div><div style="font-size:12px;color:var(--text2)">${a.local_aplicacao || '—'}</div></div>
         </div>
@@ -5722,7 +5722,7 @@ async function renderDossie(m){
                   <div class="dossie-fvs-desc">${f.cod} • ${obra?.nome||'—'} • ${f.status==='encerrada'?'Encerrada':'Em andamento'}</div>
                 </div>
               </div>
-              <div class="dossie-fvs-badge">${s.ica}% ICA</div>
+              <div class="dossie-fvs-badge">${s.icp}% ICP</div>
             </div>`;}).join('')}
           ${!fl.length?`<div class="empty" style="margin-top:6px"><div class="empty-icon">📋</div><div class="empty-title">${obraSelecionada?'Nenhuma FVS para a obra selecionada':'Nenhuma FVS cadastrada'}</div></div>`:''}
         </div>
@@ -5736,7 +5736,7 @@ async function renderDossie(m){
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
           <div style="font-size:13px;font-weight:600;margin-bottom:4px">Dossiê PBQP-h</div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Capa com ICA geral + sumário de NC + todas as FVS selecionadas</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Capa com ICP geral + sumário de NC + todas as FVS selecionadas</div>
           <button class="btn btn-success btn-sm" onclick="gerarPDF('dossie')">Gerar dossiê de auditoria</button>
         </div>
       </div>
@@ -5811,7 +5811,7 @@ function mkCapa(fl,obras,usuarios,templates){
   const nomes=[...new Set(fl.map(f=>f.obra_id||f.obraId))].map(id=>obras.find(o=>o.id===id)?.nome||id).join(', ');
   let totC=0,totAll=0,totNC=0;
   fl.forEach(f=>{const s=calcStats(f);totC+=s.C;totAll+=s.total;totNC+=(f.ocorrencias||[]).length;});
-  const ica=totAll>0?Math.round(totC/totAll*100):0;
+  const icp=totAll>0?Math.round(totC/totAll*100):0;
   div.innerHTML=`<div style="text-align:center;padding:40px 0 60px">
     <div style="font-family:'Barlow Condensed',Arial;font-size:34px;font-weight:700;color:#1a1a1a;margin-bottom:4px">PUEL <span style="color:#CAB484">ENGENHARIA</span></div>
     <div style="font-size:11px;color:#888;letter-spacing:3px;text-transform:uppercase;margin-bottom:60px">Sistema de Gestão da Qualidade — PBQP-h</div>
@@ -5819,7 +5819,7 @@ function mkCapa(fl,obras,usuarios,templates){
     <div style="font-family:'Barlow Condensed',Arial;font-size:26px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Fichas de Verificação de Serviço</div>
     <div style="font-size:14px;color:#444;margin-bottom:60px">${nomes}</div>
     <div style="display:inline-grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:60px">
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px 20px;text-align:center"><div style="font-size:30px;font-weight:700;color:#16a34a">${ica}%</div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">ICA Geral</div></div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px 20px;text-align:center"><div style="font-size:30px;font-weight:700;color:#16a34a">${icp}%</div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">ICP Geral</div></div>
       <div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:16px 20px;text-align:center"><div style="font-size:30px;font-weight:700;color:#1a1a1a">${fl.length}</div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">FVS incluídas</div></div>
       <div style="background:#fff5f5;border:1px solid #fca5a5;border-radius:6px;padding:16px 20px;text-align:center"><div style="font-size:30px;font-weight:700;color:#dc2626">${totNC}</div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">NC registradas</div></div>
     </div>
@@ -5873,7 +5873,7 @@ function mkPgFVS(fvs,obras,usuarios,templates){
       <span><strong style="color:#dc2626">${s.NC}</strong> NC</span>
       <span><strong style="color:#7c3aed">${s.RC}</strong> Reinsp. conf.</span>
       <span><strong style="color:#6b7280">${s.NA}</strong> NA</span>
-      <span style="margin-left:auto"><strong>ICA: ${s.ica}%</strong></span>
+      <span style="margin-left:auto"><strong>ICP: ${s.icp}%</strong></span>
     </div>
     <div style="overflow-x:auto;margin-bottom:10px">
       <table class="pdf-table"><thead><tr><th style="text-align:left;min-width:130px">Item</th>${locais.map(l=>`<th class="th-loc">${l.split(' · ').slice(-2).join(' · ')}</th>`).join('')}</tr></thead><tbody>${grade}</tbody></table>
@@ -7471,7 +7471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   </div>
 </div>
 
-<!-- MODAL APLICAÇÃO IS -->
+<!-- MODAL APLICPÇÃO IS -->
 <div id="modal-aplicacao-is" class="modal-overlay">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
