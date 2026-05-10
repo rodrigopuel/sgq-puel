@@ -435,8 +435,11 @@ td.td-cel span{font-weight:700;font-size:11px}
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 1H3a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V6L9 1z"/><path d="M9 1v5h5"/><path d="M5 7h2M5 10h6M5 13h4"/><circle cx="12" cy="12" r="3" fill="none"/><path d="M11 12l1 1 2-2"/></svg><span>IS</span>
       </div>
             <div class="sidebar-section">RELATÓRIOS</div>
-      <div class="nav-item" onclick="navegar('dossie')" id="nav-dossie" data-tooltip="Dossiê / PDF">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v1H3z"/><path d="M3 7h10v1H3z"/><path d="M3 11h7v1H3z"/></svg><span>Dossiê / PDF</span>
+      <div class="nav-item" onclick="navegar('dossie')" id="nav-dossie" data-tooltip="Exportar">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v1H3z"/><path d="M3 7h10v1H3z"/><path d="M3 11h7v1H3z"/></svg><span>Exportar</span>
+      </div>
+      <div class="nav-item" onclick="navegar('consultas')" id="nav-consultas" data-tooltip="Consultas">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg><span>Consultas</span>
       </div>
       <div class="nav-item" onclick="navegar('consultor')" id="nav-consultor" data-tooltip="Consultor IA">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/><path d="M8 10v2M6.5 12h3"/></svg><span>Consultor IA</span>
@@ -616,7 +619,7 @@ async function iniciarApp(){
 
 function mostrarTela(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Dossiê / PDF',consultor:'Consultor IA',fornecedores:'Fornecedores',usuarios:'Usuários'};
+const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Exportar',consultas:'Consultas',consultor:'Consultor IA',fornecedores:'Fornecedores',usuarios:'Usuários'};
 
 async function navegar(s){
   // Exigir seleção de obra para FVS, FVM e Dossiê
@@ -667,6 +670,7 @@ async function navegar(s){
       'templates-fvm': () => renderTemplatesFVM(m),
       'templates-is':  () => renderTemplatesIS(m),
       dossie: () => renderDossie(m),
+      consultas: () => renderConsultas(m),
       consultor: () => renderConsultor(m),
       fornecedores: () => renderFornecedores(m),
       usuarios: () => renderUsuarios(m)
@@ -5838,6 +5842,21 @@ async function reverterTemplateFVM(templateId) {
     console.error('Erro ao reverter template FVM:', error);
     toast('Erro ao reverter template: ' + error.message, 'error');
   }
+}
+
+function renderConsultas(m) {
+  m.innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Consultas</div>
+        <div class="page-sub">Consultas e relatórios gerenciais</div>
+      </div>
+    </div>
+    <div class="empty">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">Em construção</div>
+      <div class="empty-desc">As consultas disponíveis aparecerão aqui</div>
+    </div>`;
 }
 
 async function renderDossie(m){
