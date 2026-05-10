@@ -692,14 +692,14 @@ async function renderObraList(){
     const list = document.getElementById('obra-list');
     if (!list) return;
 
-    list.innerHTML = `
+    list.innerHTML = (usuarioAtual?.perfil === 'admin' ? `
       <div class="obra-item ${!obraSelecionadaId ? 'selected' : ''}" onclick="selecionarObra(null)">
         <div style="flex:1">
           <div style="font-weight:500">Todas as obras</div>
           <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">visão geral</div>
         </div>
       </div>
-    ` + obras.map(obra => `
+    ` : '') + obras.map(obra => `
       <div class="obra-item ${obra.id === obraSelecionadaId ? 'selected' : ''}" onclick="selecionarObra('${obra.id}')">
         <div style="flex:1">
           <div style="font-weight:500">${obra.nome}</div>
