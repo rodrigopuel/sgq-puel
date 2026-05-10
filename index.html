@@ -4536,42 +4536,117 @@ function isVerArquivo(url, tipo) {
   window.open(url, '_blank');
 }
 
-async function isVerHistorico(fvsId) {
-  const client = await esperarSupabase();
-  const todos = await client.get('fvs_is', { fvs_id: fvsId });
-  const atual = todos.sort((a, b) => b.data_upload.localeCompare(a.data_upload))[0];
-  if (!atual) { toast('Nenhum histórico encontrado', 'error'); return; }
-  const hist  = atual.historico || [];
-  if (!hist.length) { toast('Nenhuma versão anterior registrada', 'info'); return; }
-  const linhas = hist.map(h => `
-    <tr>
-      <td><span class="tag tag-rev" style="font-size:10px">${h.versao}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${h.arquivo_nome}</td>
-      <td style="font-size:11px;color:var(--text3)">${new Date(h.data_upload).toLocaleDateString('pt-BR')}</td>
-      <td><button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${h.arquivo_url}','${h.arquivo_tipo}')">Ver</button></td>
-    </tr>`).join('');
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  overlay.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:80vh;overflow-y:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2)">
-        <span style="font-family:var(--font-cond);font-size:16px;font-weight:600">Histórico de Revisões IS</span>
-        <button class="btn modal-close" onclick="this.closest('div[style*=\"fixed\"]').remove()">✕</button>
+async function isVerHistorico(templateId) {
+  // Remove modal anterior se existir
+  const anterior = document.getElementById('modal-historico-is');
+  if (anterior) anterior.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-historico-is';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:580px">
+      <div class="modal-header">
+        <h3 class="modal-title">Histórico de Revisões IS</h3>
+        <button class="btn modal-close" onclick="document.getElementById('modal-historico-is').classList.remove('open')">✕</button>
       </div>
-      <div style="padding:16px">
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr>
-            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Revisão</th>
-            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Arquivo</th>
-            <th style="text-align:left;padding:8px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Data</th>
-            <th style="border-bottom:1px solid var(--border)"></th>
-          </tr></thead>
-          <tbody>${linhas}</tbody>
-        </table>
+      <div class="modal-body" id="is-hist-body">
+        <div style="text-align:center;padding:24px;color:var(--text3)">Carregando...</div>
+      </div>
+      <div class="modal-footer">
+        <div id="is-hist-reverter" style="display:none;flex:1">
+          <button class="btn btn-secondary" onclick="isReverterVersao('${templateId}')">↩ Reverter para versão anterior</button>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-historico-is').classList.remove('open')">Fechar</button>
       </div>
     </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(modal);
+  modal.classList.add('open');
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+  await isCarregarHistorico(templateId);
+}
+
+async function isCarregarHistorico(templateId) {
+  const body = document.getElementById('is-hist-body');
+  const reverterDiv = document.getElementById('is-hist-reverter');
+  try {
+    const client = await esperarSupabase();
+    const todos = await client.get('fvs_is', { fvs_id: templateId });
+    const atual = todos.sort((a, b) => b.data_upload.localeCompare(a.data_upload))[0];
+    if (!atual) { body.innerHTML = '<div class="empty"><div class="empty-title">Nenhum registro IS encontrado</div></div>'; return; }
+
+    const hist = atual.historico || [];
+    reverterDiv.style.display = hist.length > 0 ? 'flex' : 'none';
+
+    const linhasHist = [...hist].reverse().map(h => `
+      <tr>
+        <td><span class="tag tag-rev" style="font-size:10px">${h.versao}</span></td>
+        <td style="font-size:12px;color:var(--text2);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${h.arquivo_nome}">${h.arquivo_nome}</td>
+        <td style="font-size:11px;color:var(--text3)">${new Date(h.data_upload).toLocaleDateString('pt-BR')}</td>
+        <td><button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${h.arquivo_url}','${h.arquivo_tipo}')">📄 Ver</button></td>
+      </tr>`).join('');
+
+    body.innerHTML = `
+      <div style="margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--radius);display:flex;align-items:center;gap:10px">
+        <span class="tag tag-ok" style="font-size:11px">${atual.versao} (vigente)</span>
+        <span style="font-size:12px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${atual.arquivo_nome}</span>
+        <button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${atual.arquivo_url}','${atual.arquivo_tipo}')">📄 Ver</button>
+      </div>
+      ${hist.length ? `
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-family:var(--font-mono)">VERSÕES ANTERIORES</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">Revisão</th>
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">Arquivo</th>
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">Data</th>
+            <th style="border-bottom:1px solid var(--border)"></th>
+          </tr></thead>
+          <tbody>${linhasHist}</tbody>
+        </table>` : '<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px">Nenhuma versão anterior</div>'}`;
+  } catch (e) {
+    body.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar histórico</div></div>';
+  }
+}
+
+async function isReverterVersao(templateId) {
+  if (!confirm('Reverter para a versão anterior? A versão vigente passará para o histórico.')) return;
+  try {
+    const client = await esperarSupabase();
+    const todos = await client.get('fvs_is', { fvs_id: templateId });
+    const atual = todos.sort((a, b) => b.data_upload.localeCompare(a.data_upload))[0];
+    if (!atual) { toast('Registro IS não encontrado', 'error'); return; }
+
+    const hist = atual.historico || [];
+    if (!hist.length) { toast('Nenhuma versão anterior para reverter', 'error'); return; }
+
+    const versaoAnterior = hist[hist.length - 1];
+    const novoHistorico  = hist.slice(0, -1);
+
+    // Adiciona vigente atual ao histórico e restaura anterior
+    novoHistorico.push({
+      versao: atual.versao, arquivo_nome: atual.arquivo_nome,
+      arquivo_url: atual.arquivo_url, arquivo_tipo: atual.arquivo_tipo,
+      data_upload: atual.data_upload
+    });
+
+    await client.update('fvs_is', atual.id, {
+      versao: versaoAnterior.versao,
+      arquivo_nome: versaoAnterior.arquivo_nome,
+      arquivo_url: versaoAnterior.arquivo_url,
+      arquivo_tipo: versaoAnterior.arquivo_tipo,
+      arquivo_path: versaoAnterior.arquivo_path || '',
+      data_upload: new Date().toISOString(),
+      historico: novoHistorico
+    });
+
+    toast(`Revertido para ${versaoAnterior.versao} com sucesso!`, 'success');
+    await isCarregarHistorico(templateId);
+    renderTemplatesIS(document.getElementById('main-content'));
+  } catch (e) {
+    console.error('Erro ao reverter IS:', e);
+    toast('Erro ao reverter: ' + e.message, 'error');
+  }
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
