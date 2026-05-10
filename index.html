@@ -963,6 +963,29 @@ async function renderDashboard(m){
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de serviço</div>${gerarDonutNCTipoServico(fvsFiltradas, templates)}</div>
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de problema</div>${gerarDonutNCTipoProblema(fvsFiltradas)}</div>
       </div>
+      ${fvsFiltradas.length ? `
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px">Mapa de progressão</div>
+      <div class="chart-wrap" style="padding:16px 20px">
+        ${fvsFiltradas.map(fvs => {
+          const totalCelulas = (fvs.criterios||[]).length * (fvs.locais||[]).length;
+          const preenchidas = Object.keys(fvs.resultados||{}).length;
+          const pct = totalCelulas > 0 ? Math.round(preenchidas / totalCelulas * 100) : 0;
+          const cor = pct === 100 ? 'var(--green)' : 'var(--red)';
+          const obraFvs = obras.find(o => o.id === fvs.obra_id);
+          return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <div style="min-width:180px;max-width:180px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fvs.cod}</div>
+              <div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fvs.servico}${obraFvs ? ` · ${obraFvs.nome}` : ''}</div>
+            </div>
+            <div style="flex:1;background:var(--bg3);border-radius:4px;height:14px;overflow:visible;position:relative">
+              <div style="width:${pct}%;background:${cor};height:100%;border-radius:4px;position:relative;transition:width .3s">
+                ${pct > 0 ? `<span style="position:absolute;right:${pct < 10 ? '-28px' : '6px'};top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:${pct < 10 ? cor : '#fff'};white-space:nowrap">${pct}%</span>` : ''}
+              </div>
+              ${pct === 0 ? `<span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--red)">0%</span>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
       `;
   } catch (error) {
     console.error('Erro no dashboard:', error);
