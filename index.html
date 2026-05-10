@@ -1825,17 +1825,12 @@ async function abrirFVS(fvsId) {
                 ${(fvs.locais || []).map((local, j) => {
                   const chave = `${i}-${j}`;
                   const resultado = fvs.resultados?.[chave];
-                  console.log(`🔍 DEBUG Célula [${i}][${j}]:`, { 
-                    chave, 
-                    resultado, 
-                    local,
-                    existeResultado: !!resultado,
-                    resultadosDisponiveis: Object.keys(fvs.resultados || {}),
-                    todosResultados: fvs.resultados
-                  });
+                  const aud = fvs.auditoria?.[chave];
+                  const tooltip = aud ? `Preenchido por ${aud.nome} · ${new Date(aud.data).toLocaleDateString('pt-BR')}` : '';
                   return `
                   <td style="width:8%">
-                    <button class="cell-btn ${resultado ? `cell-${resultado}` : 'cell-blank'}" 
+                    <button class="cell-btn ${resultado ? `cell-${resultado}` : 'cell-blank'}"
+                            title="${tooltip}"
                             onclick="marcarCelulaFVS('${fvs.id}', ${i}, '${local}', this)">
                       ${resultado || ''}
                     </button>
@@ -7185,11 +7180,13 @@ function abrirModalPreenchimento(fvsId, criterioIndex, local, elemento) {
   localAtual = localIndex;
   resultadoSelecionado = resultado || null;
   
-  // Mostrar resultado atual se existir
+  // Mostrar resultado atual e auditoria se existirem
   const divResultado = document.getElementById('resultado-selecionado');
   if (resultado) {
-    const labels = { 'C': '✓ CONFORME', 'NC': '✗ NÃO CONFORME', 'NA': '○ NÃO APLICÁVEL' };
-    divResultado.innerHTML = `<strong>Atual:</strong> ${labels[resultado]}`;
+    const labels = { 'C': '✓ CONFORME', 'NC': '✗ NÃO CONFORME', 'NA': '○ NÃO APLICÁVEL', 'RC': '↺ REINSP. CONFORME' };
+    const aud = window.fvsAtual?.auditoria?.[chave];
+    const audInfo = aud ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">Preenchido por <strong style="color:var(--text2)">${aud.nome}</strong> · ${new Date(aud.data).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>` : '';
+    divResultado.innerHTML = `<strong>Atual:</strong> ${labels[resultado] || resultado}${audInfo}`;
   } else {
     divResultado.innerHTML = '';
   }
@@ -7237,10 +7234,12 @@ async function limparVerificacao() {
       window.fvsAtual.resultados = {};
     }
     delete window.fvsAtual.resultados[chave];
-    
+    if (window.fvsAtual.auditoria) delete window.fvsAtual.auditoria[chave];
+
     // Atualizar no banco
     const dadosAtualizados = await client.update('fvs', fvsIdAtual, {
-      resultados: window.fvsAtual.resultados
+      resultados: window.fvsAtual.resultados,
+      auditoria: window.fvsAtual.auditoria || {}
     });
     
     // Atualizar window.fvsAtual com os dados retornados do banco
@@ -7252,6 +7251,7 @@ async function limparVerificacao() {
     if (celulaAtual) {
       celulaAtual.textContent = '';
       celulaAtual.className = 'cell-btn cell-blank';
+      celulaAtual.title = '';
     }
 
     atualizarResumoFVS();
@@ -7284,18 +7284,18 @@ async function salvarVerificacao() {
       window.fvsAtual.resultados = {};
     }
     window.fvsAtual.resultados[chave] = resultadoSelecionado;
-    
-    console.log('💾 DEBUG salvandoVerificacao:', {
-      fvsId: fvsIdAtual,
-      chave: chave,
-      resultado: resultadoSelecionado,
-      resultadosAntes: window.fvsAtual.resultados,
-      totalResultados: Object.keys(window.fvsAtual.resultados).length
-    });
-    
+
+    if (!window.fvsAtual.auditoria) window.fvsAtual.auditoria = {};
+    window.fvsAtual.auditoria[chave] = {
+      nome: usuarioAtual?.nome || 'Desconhecido',
+      usuarioId: usuarioAtual?.id || null,
+      data: new Date().toISOString()
+    };
+
     // Salvar no banco
     const dadosAtualizados = await client.update('fvs', fvsIdAtual, {
-      resultados: window.fvsAtual.resultados
+      resultados: window.fvsAtual.resultados,
+      auditoria: window.fvsAtual.auditoria
     });
     
     console.log('✅ DEBUG salvamento no banco concluído:', dadosAtualizados);
@@ -7310,6 +7310,8 @@ async function salvarVerificacao() {
     if (celulaAtual) {
       celulaAtual.textContent = resultadoSelecionado;
       celulaAtual.className = `cell-btn cell-${resultadoSelecionado}`;
+      const aud = window.fvsAtual.auditoria[chave];
+      celulaAtual.title = `Preenchido por ${aud.nome} · ${new Date(aud.data).toLocaleDateString('pt-BR')}`;
     }
 
     atualizarResumoFVS();
