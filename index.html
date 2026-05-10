@@ -430,6 +430,9 @@ td.td-cel span{font-weight:700;font-size:11px}
       <div class="nav-item" onclick="navegar('fvm')" id="nav-fvm" data-tooltip="FVM">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 6h6M5 9h6M5 12h4"/></svg><span>FVM</span>
       </div>
+      <div class="nav-item" onclick="navegar('aplicacao-is')" id="nav-aplicacao-is" data-tooltip="Aplicação IS">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 1H3a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V6L9 1z"/><path d="M9 1v5h5"/><path d="M5 7h2M5 10h6M5 13h4"/><circle cx="12" cy="12" r="3" fill="none"/><path d="M11 12l1 1 2-2"/></svg><span>Aplicação IS</span>
+      </div>
             <div class="sidebar-section">RELATÓRIOS</div>
       <div class="nav-item" onclick="navegar('dossie')" id="nav-dossie" data-tooltip="Dossiê / PDF">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v1H3z"/><path d="M3 7h10v1H3z"/><path d="M3 11h7v1H3z"/></svg><span>Dossiê / PDF</span>
@@ -612,7 +615,7 @@ async function iniciarApp(){
 
 function mostrarTela(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Dossiê / PDF',consultor:'Consultor IA',fornecedores:'Fornecedores',usuarios:'Usuários'};
+const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Dossiê / PDF',consultor:'Consultor IA',fornecedores:'Fornecedores',usuarios:'Usuários'};
 
 async function navegar(s){
   // Exigir seleção de obra para FVS, FVM e Dossiê
@@ -658,6 +661,7 @@ async function navegar(s){
       obras: () => renderObras(m),
       fvs: () => renderFVS(m),
       fvm: () => renderFVM(m),
+      'aplicacao-is': () => renderAplicacaoIS(m),
       templates: () => renderTemplates(m),
       'templates-fvm': () => renderTemplatesFVM(m),
       'templates-is':  () => renderTemplatesIS(m),
@@ -4662,6 +4666,265 @@ async function isReverterVersao(templateId) {
     toast('Erro ao reverter: ' + e.message, 'error');
   }
 }
+// ─── APLICAÇÃO IS ─────────────────────────────────────────────────────────────
+let _aplFvsId = null, _aplFotoAtual = null, _aplIsInfo = null;
+
+async function renderAplicacaoIS(m) {
+  if (!obraSelecionadaId) {
+    m.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Selecione uma obra</div><div class="empty-sub">Escolha uma obra no menu lateral para ver os registros de Aplicação IS</div></div>`;
+    return;
+  }
+  try {
+    const client = await esperarSupabase();
+    const [fvsList, aplicacoes, isRegistros] = await Promise.all([
+      client.get('fvs', { obra_id: obraSelecionadaId }),
+      client.get('aplicacoes_is', {}),
+      client.get('fvs_is', {})
+    ]);
+
+    const isMap = {};
+    isRegistros.forEach(r => {
+      if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) isMap[r.fvs_id] = r;
+    });
+
+    // Filtrar aplicações da obra atual
+    const fvsIds = new Set(fvsList.map(f => f.id));
+    const aplObra = aplicacoes.filter(a => fvsIds.has(a.fvs_id));
+    aplObra.sort((a, b) => b.data_aplicacao.localeCompare(a.data_aplicacao));
+
+    const fvsMap = {};
+    fvsList.forEach(f => { fvsMap[f.id] = f; });
+
+    const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual?.perfil);
+
+    m.innerHTML = `
+      <div class="page-header">
+        <div>
+          <div class="page-title">Aplicação IS</div>
+          <div class="page-sub">${aplObra.length} registro${aplObra.length !== 1 ? 's' : ''} nesta obra</div>
+        </div>
+        ${pA ? `<button class="btn btn-primary" onclick="aplISAbrirModal()">+ Novo Registro</button>` : ''}
+      </div>
+      <div class="table-wrap"><div class="table-scroll"><table>
+        <thead><tr>
+          <th>Data</th><th>FVS</th><th>IS Aplicada</th><th>Responsável</th><th>Participantes</th><th>Local</th><th>Ações</th>
+        </tr></thead>
+        <tbody>
+          ${aplObra.map(a => {
+            const fvs = fvsMap[a.fvs_id];
+            return `<tr>
+              <td style="font-family:var(--font-mono);font-size:11px;white-space:nowrap">${a.data_aplicacao ? new Date(a.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+              <td style="font-size:12px"><div style="font-weight:500">${fvs?.servico || '—'}</div><div style="font-size:10px;color:var(--text3)">${fvs?.cod || ''}</div></td>
+              <td><span class="tag tag-ok" style="font-size:10px">${a.is_versao || '—'}</span></td>
+              <td style="font-size:12px;color:var(--text2)">${a.responsavel_nome || '—'}</td>
+              <td style="font-size:12px;color:var(--text2);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${a.participantes || ''}">${a.participantes || '—'}</td>
+              <td style="font-size:12px;color:var(--text3)">${a.local_aplicacao || '—'}</td>
+              <td class="td-acoes">
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-xs" onclick="aplISVerRegistro('${a.id}')">🔍 Ver</button>
+                  ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="aplISExcluir('${a.id}')">🗑</button>` : ''}
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+          ${!aplObra.length ? `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhum registro de Aplicação IS</div><div class="empty-sub">Clique em "+ Novo Registro" para registrar a primeira aplicação</div></div></td></tr>` : ''}
+        </tbody>
+      </table></div></div>`;
+  } catch (e) {
+    console.error('Erro ao renderizar Aplicação IS:', e);
+    m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar</div></div>';
+  }
+}
+
+async function aplISAbrirModal(fvsIdPreSelecionado) {
+  _aplFvsId = fvsIdPreSelecionado || null;
+  _aplFotoAtual = null;
+  _aplIsInfo = null;
+
+  // Preencher select de FVS
+  const client = await esperarSupabase();
+  const [fvsList, isRegistros] = await Promise.all([
+    client.get('fvs', { obra_id: obraSelecionadaId }),
+    client.get('fvs_is', {})
+  ]);
+  const isMap = {};
+  isRegistros.forEach(r => {
+    if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) isMap[r.fvs_id] = r;
+  });
+
+  const sel = document.getElementById('apl-fvs-select');
+  sel.innerHTML = '<option value="">Selecione a FVS...</option>' +
+    fvsList.map(f => {
+      const is = isMap[f.template_id];
+      const label = `${f.cod} — ${f.servico}${is ? ` (IS ${is.versao})` : ' (sem IS)'}`;
+      return `<option value="${f.id}" data-template="${f.template_id || ''}">${label}</option>`;
+    }).join('');
+
+  if (fvsIdPreSelecionado) {
+    sel.value = fvsIdPreSelecionado;
+    aplISOnFvsChange();
+  } else {
+    document.getElementById('apl-is-info').style.display = 'none';
+  }
+
+  // Limpar campos
+  document.getElementById('apl-data').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('apl-responsavel').value = usuarioAtual?.nome || '';
+  document.getElementById('apl-local').value = '';
+  document.getElementById('apl-participantes').value = '';
+  document.getElementById('apl-obs').value = '';
+  document.getElementById('apl-foto-preview').style.display = 'none';
+  document.getElementById('apl-foto-input').value = '';
+  document.getElementById('modal-aplicacao-is').classList.add('open');
+
+  // Armazenar isMap para uso no onchange
+  window._aplIsMap = isMap;
+}
+
+function aplISOnFvsChange() {
+  const sel = document.getElementById('apl-fvs-select');
+  const opt = sel.options[sel.selectedIndex];
+  const templateId = opt?.dataset?.template;
+  const infoDiv = document.getElementById('apl-is-info');
+  if (!templateId || !window._aplIsMap) { infoDiv.style.display = 'none'; _aplIsInfo = null; return; }
+  const is = window._aplIsMap[templateId];
+  if (!is) {
+    infoDiv.style.display = 'block';
+    infoDiv.style.borderLeftColor = 'var(--red)';
+    infoDiv.innerHTML = `<span style="color:var(--red);font-size:12px">⚠ Esta FVS não possui IS anexada. Anexe uma IS antes de registrar a aplicação.</span>`;
+    _aplIsInfo = null;
+  } else {
+    infoDiv.style.display = 'block';
+    infoDiv.style.borderLeftColor = 'var(--accent)';
+    infoDiv.innerHTML = `<span style="font-size:12px;color:var(--text2)">IS vigente: <strong style="color:var(--text)">${is.versao}</strong> · ${is.arquivo_nome}</span>`;
+    _aplIsInfo = { versao: is.versao, arquivo_url: is.arquivo_url, arquivo_tipo: is.arquivo_tipo };
+  }
+}
+
+function aplISFecharModal() {
+  document.getElementById('modal-aplicacao-is').classList.remove('open');
+}
+
+function aplISAbrirCamera() { document.getElementById('apl-foto-camera').click(); }
+function aplISAbrirGaleria() { document.getElementById('apl-foto-input').click(); }
+
+async function aplISProcessarFoto(input) {
+  if (!input.files[0]) return;
+  try {
+    const compressed = await comprimirImagem(input.files[0], 1200, 0.75);
+    _aplFotoAtual = { nome: input.files[0].name, tipo: input.files[0].type, data: compressed, dataUpload: new Date().toISOString() };
+    document.getElementById('apl-foto-img').src = compressed;
+    document.getElementById('apl-foto-nome').textContent = input.files[0].name;
+    document.getElementById('apl-foto-preview').style.display = 'flex';
+  } catch (e) {
+    toast('Erro ao processar foto', 'error');
+  }
+}
+
+function aplISRemoverFoto() {
+  _aplFotoAtual = null;
+  document.getElementById('apl-foto-input').value = '';
+  document.getElementById('apl-foto-camera').value = '';
+  document.getElementById('apl-foto-preview').style.display = 'none';
+}
+
+async function aplISSalvar() {
+  const fvsId       = document.getElementById('apl-fvs-select').value;
+  const data        = document.getElementById('apl-data').value;
+  const responsavel = document.getElementById('apl-responsavel').value.trim();
+  const local       = document.getElementById('apl-local').value.trim();
+  const partic      = document.getElementById('apl-participantes').value.trim();
+  const obs         = document.getElementById('apl-obs').value.trim();
+
+  if (!fvsId)       { toast('Selecione a FVS', 'error'); return; }
+  if (!_aplIsInfo)  { toast('A FVS selecionada não possui IS anexada', 'error'); return; }
+  if (!data)        { toast('Informe a data da aplicação', 'error'); return; }
+  if (!responsavel) { toast('Informe o responsável pela instrução', 'error'); return; }
+  if (!partic)      { toast('Informe os participantes', 'error'); return; }
+  if (!_aplFotoAtual) { toast('Anexe a foto do registro', 'error'); return; }
+
+  const btn = document.getElementById('apl-btn-salvar');
+  btn.disabled = true;
+  try {
+    const client = await esperarSupabase();
+    await client.insert('aplicacoes_is', {
+      id: mkId('apl'),
+      fvs_id: fvsId,
+      is_versao: _aplIsInfo.versao,
+      is_arquivo_url: _aplIsInfo.arquivo_url,
+      data_aplicacao: data,
+      responsavel_id: usuarioAtual?.id || '',
+      responsavel_nome: responsavel,
+      local_aplicacao: local,
+      participantes: partic,
+      obs: obs,
+      foto: _aplFotoAtual,
+      created_at: new Date().toISOString()
+    });
+    toast('Registro salvo com sucesso!', 'success');
+    aplISFecharModal();
+    renderAplicacaoIS(document.getElementById('main-content'));
+  } catch (e) {
+    console.error('Erro ao salvar aplicação IS:', e);
+    toast('Erro ao salvar: ' + e.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+async function aplISVerRegistro(id) {
+  const client = await esperarSupabase();
+  const todos = await client.get('aplicacoes_is', {});
+  const a = todos.find(r => r.id === id);
+  if (!a) { toast('Registro não encontrado', 'error'); return; }
+
+  const fvsList = await client.get('fvs', { obra_id: obraSelecionadaId });
+  const fvs = fvsList.find(f => f.id === a.fvs_id);
+
+  const anterior = document.getElementById('modal-apl-is-ver');
+  if (anterior) anterior.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-apl-is-ver';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h3 class="modal-title">Registro de Aplicação IS</h3>
+        <button class="btn modal-close" onclick="document.getElementById('modal-apl-is-ver').classList.remove('open')">✕</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">DATA</div><div style="font-size:13px;font-weight:600">${a.data_aplicacao ? new Date(a.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</div></div>
+          <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">IS APLICADA</div><span class="tag tag-ok">${a.is_versao || '—'}</span></div>
+          <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">FVS</div><div style="font-size:12px">${fvs ? `${fvs.cod} — ${fvs.servico}` : '—'}</div></div>
+          <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">LOCAL</div><div style="font-size:12px;color:var(--text2)">${a.local_aplicacao || '—'}</div></div>
+        </div>
+        <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">RESPONSÁVEL</div><div style="font-size:13px">${a.responsavel_nome || '—'}</div></div>
+        <div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">PARTICIPANTES</div><div style="font-size:13px;white-space:pre-wrap;line-height:1.5">${a.participantes || '—'}</div></div>
+        ${a.obs ? `<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">OBSERVAÇÕES</div><div style="font-size:12px;color:var(--text2)">${a.obs}</div></div>` : ''}
+        ${a.foto?.data ? `<div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">FOTO</div><img src="${a.foto.data}" style="width:100%;max-height:260px;object-fit:contain;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer" onclick="_abrirLightbox('${a.foto.data}')"></div>` : ''}
+        ${a.is_arquivo_url ? `<button class="btn btn-ghost btn-sm" onclick="isVerArquivo('${a.is_arquivo_url}','pdf')" style="align-self:flex-start">📄 Ver arquivo IS aplicado</button>` : ''}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-apl-is-ver').classList.remove('open')">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.classList.add('open');
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+}
+
+async function aplISExcluir(id) {
+  if (!confirm('Excluir este registro de Aplicação IS? Esta ação não pode ser desfeita.')) return;
+  try {
+    const client = await esperarSupabase();
+    await client.remove('aplicacoes_is', id);
+    toast('Registro excluído', 'success');
+    renderAplicacaoIS(document.getElementById('main-content'));
+  } catch (e) {
+    toast('Erro ao excluir: ' + e.message, 'error');
+  }
+}
 // ──────────────────────────────────────────────────────────────────────────────
 
 async function renderTemplatesFVM(m){
@@ -7085,6 +7348,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModalTemplateIS()">Cancelar</button>
       <button id="is-btn-salvar" class="btn btn-primary" onclick="salvarTemplateIS()">Anexar IS</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL APLICAÇÃO IS -->
+<div id="modal-aplicacao-is" class="modal-overlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2 class="modal-title">Registrar Aplicação IS</h2>
+      <button class="btn modal-close" onclick="aplISFecharModal()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+
+      <div class="field">
+        <label>FVS *</label>
+        <select id="apl-fvs-select" onchange="aplISOnFvsChange()" required>
+          <option value="">Selecione a FVS...</option>
+        </select>
+      </div>
+      <div id="apl-is-info" style="display:none;padding:10px 12px;background:var(--bg3);border-radius:var(--radius);border-left:3px solid var(--accent)"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field">
+          <label>Data da Aplicação *</label>
+          <input type="date" id="apl-data" required>
+        </div>
+        <div class="field">
+          <label>Local</label>
+          <input type="text" id="apl-local" placeholder="Ex: Canteiro, Escritório...">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Responsável pela instrução *</label>
+        <input type="text" id="apl-responsavel" placeholder="Nome de quem ministrou" required>
+      </div>
+
+      <div class="field">
+        <label>Participantes *</label>
+        <textarea id="apl-participantes" rows="3" placeholder="Nome dos participantes que receberam a instrução (um por linha ou separados por vírgula)" style="resize:vertical"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Foto do Registro *</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="aplISAbrirCamera()">📷 Câmera</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="aplISAbrirGaleria()">🖼 Galeria</button>
+        </div>
+        <input type="file" id="apl-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="aplISProcessarFoto(this)">
+        <input type="file" id="apl-foto-input" accept="image/*" style="display:none" onchange="aplISProcessarFoto(this)">
+        <div id="apl-foto-preview" style="display:none;align-items:center;gap:10px;padding:8px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+          <img id="apl-foto-img" src="" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:4px">
+          <div style="flex:1;min-width:0">
+            <div id="apl-foto-nome" style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px">✓ Foto anexada</div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-xs" onclick="aplISRemoverFoto()">🗑</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="apl-obs" rows="2" placeholder="Observações opcionais..." style="resize:vertical"></textarea>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="aplISFecharModal()">Cancelar</button>
+      <button id="apl-btn-salvar" class="btn btn-primary" onclick="aplISSalvar()">Salvar Registro</button>
     </div>
   </div>
 </div>
