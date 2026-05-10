@@ -692,7 +692,14 @@ async function renderObraList(){
     const list = document.getElementById('obra-list');
     if (!list) return;
 
-    list.innerHTML = obras.map(obra => `
+    list.innerHTML = `
+      <div class="obra-item ${!obraSelecionadaId ? 'selected' : ''}" onclick="selecionarObra(null)">
+        <div style="flex:1">
+          <div style="font-weight:500">Todas as obras</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">visão geral</div>
+        </div>
+      </div>
+    ` + obras.map(obra => `
       <div class="obra-item ${obra.id === obraSelecionadaId ? 'selected' : ''}" onclick="selecionarObra('${obra.id}')">
         <div style="flex:1">
           <div style="font-weight:500">${obra.nome}</div>
@@ -711,26 +718,24 @@ async function renderObraList(){
 
 function selecionarObra(obraId) {
   obraSelecionadaId = obraId;
-  const obra = _obrasCache.find(o => o.id === obraId);
+  const obra = obraId ? _obrasCache.find(o => o.id === obraId) : null;
+  const nomeExibido = obra ? obra.nome : 'Todas as obras';
 
-  if (obra) {
-    const headerSpan = document.querySelector('.obra-selector-header span');
-    if (headerSpan) headerSpan.textContent = obra.nome;
+  const headerSpan = document.querySelector('.obra-selector-header span');
+  if (headerSpan) headerSpan.textContent = nomeExibido;
 
-    const list = document.getElementById('obra-list');
-    const headerEl = document.querySelector('.obra-selector-header');
-    if (list && headerEl) {
-      list.style.display = 'none';
-      list.classList.remove('open');
-      headerEl.classList.remove('active');
-    }
-
-    toast(`Obra selecionada: ${obra.nome}`, 'success');
-
-    const main = document.getElementById('main-content');
-    const secao = document.querySelector('.nav-item.active')?.id?.replace('nav-','');
-    if (secao) navegar(secao);
+  const list = document.getElementById('obra-list');
+  const headerEl = document.querySelector('.obra-selector-header');
+  if (list && headerEl) {
+    list.style.display = 'none';
+    list.classList.remove('open');
+    headerEl.classList.remove('active');
   }
+
+  toast(`Filtro: ${nomeExibido}`, 'success');
+
+  const secao = document.querySelector('.nav-item.active')?.id?.replace('nav-','');
+  if (secao) navegar(secao);
 }
 
 function toggleObraSelector(header) {
