@@ -1766,7 +1766,7 @@ async function abrirFVS(fvsId) {
       </div>
       
       <!-- Box 2: Resumo Gráfico das Verificações -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px">
+      <div id="fvs-resumo-box" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div style="display:flex;gap:20px">
             ${calcularResumoVerificacoes(fvs).map(item => {
@@ -2922,6 +2922,33 @@ function calcularPercentualNC(fvs) {
   const resumo = calcularResumoVerificacoes(fvs);
   const ncItem = resumo.find(item => item.tipo === 'NC');
   return ncItem ? Math.round(ncItem.percentual) : 0;
+}
+
+function atualizarResumoFVS() {
+  const box = document.getElementById('fvs-resumo-box');
+  if (!box || !window.fvsAtual) return;
+  const fvs = window.fvsAtual;
+  const labelDe = t => t === 'C' ? 'Conforme' : t === 'NC' ? 'Não Conforme' : t === 'RC' ? 'Reinspecionado Conforme' : t === 'NA' ? 'Não Aplicável' : t === 'B' ? 'Em Branco' : t;
+  const itens = calcularResumoVerificacoes(fvs);
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;gap:20px">
+        ${itens.map(item => `
+          <div style="display:flex;align-items:center;gap:4px">
+            <div style="font-size:14px;color:${item.cor};font-family:var(--font-cond)">${item.quantidade}</div>
+            <div style="font-size:13px;color:${item.cor}">${labelDe(item.tipo)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="font-size:13px;color:#fff;font-family:var(--font-mono)">
+        ICP: ${calcularICP(fvs)}% · ${calcularPercentualConcluido(fvs)}% concluído
+      </div>
+    </div>
+    <div style="position:relative;height:9px;background:var(--bg3);border-radius:6px;overflow:hidden">
+      <div style="display:flex;height:100%">
+        ${itens.map(item => `<div style="width:${item.percentual}%;height:100%;background:${item.cor}"></div>`).join('')}
+      </div>
+    </div>`;
 }
 
 function calcularPercentualConcluido(fvs) {
@@ -7208,7 +7235,8 @@ async function limparVerificacao() {
       celulaAtual.textContent = '';
       celulaAtual.className = 'cell-btn cell-blank';
     }
-    
+
+    atualizarResumoFVS();
     toast('Verificação limpa com sucesso', 'success');
     fecharModalPreenchimento();
     
@@ -7265,7 +7293,8 @@ async function salvarVerificacao() {
       celulaAtual.textContent = resultadoSelecionado;
       celulaAtual.className = `cell-btn cell-${resultadoSelecionado}`;
     }
-    
+
+    atualizarResumoFVS();
     toast('Verificação salva com sucesso', 'success');
     
     // Se for NC, abrir tela de registro após salvar
