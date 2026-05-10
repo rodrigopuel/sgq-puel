@@ -890,9 +890,11 @@ async function renderDashboard(m){
     const fvmList = await client.getFVM();
 
     const totalNC = fvsFiltradas.reduce((s,f) => s + (f.ocorrencias||[]).filter(o=>o.status==='aberta').length, 0);
-    let totC=0, totAll=0;
-    fvsFiltradas.forEach(f => { const s=calcStats(f); totC+=s.C; totAll+=s.total; });
+    let totC=0, totAll=0, totRC=0, totNC=0;
+    fvsFiltradas.forEach(f => { const s=calcStats(f); totC+=s.C; totAll+=s.total; totRC+=s.RC; totNC+=s.NC; });
     const icpGeral = totAll>0 ? Math.round(totC/totAll*100) : 0;
+    const icaBase = totC+totRC+totNC;
+    const icaGeral = icaBase>0 ? Math.round((totC+totRC)/icaBase*100) : 0;
 
     const templates = await client.getTemplatesFVS();
 
@@ -920,6 +922,7 @@ async function renderDashboard(m){
       <div class="kpi-grid">
         <div class="kpi-card k-accent"><div class="kpi-label">${obraSelecionada?'Obra selecionada':'Obras ativas'}</div><div class="kpi-value" style="color:var(--accent)">${obrasEscopo.length}</div><div class="kpi-sub">${obraSelecionada?'filtro aplicado':'em andamento'}</div></div>
         <div class="kpi-card k-green"><div class="kpi-label">ICP Geral</div><div class="kpi-value" style="color:var(--green)">${icpGeral}%</div><div class="kpi-sub">índice de conformidade na 1ª insp.</div></div>
+        <div class="kpi-card k-green"><div class="kpi-label">ICA</div><div class="kpi-value" style="color:var(--green)">${icaGeral}%</div><div class="kpi-sub">conf. acumulada (C+RC) / (C+RC+NC)</div></div>
         <div class="kpi-card k-amber"><div class="kpi-label">FVS em andamento</div><div class="kpi-value" style="color:var(--amber)">${fvsFiltradas.filter(f=>f.status==='andamento').length}</div><div class="kpi-sub">${fvsFiltradas.filter(f=>f.status==='encerrada').length} encerradas / ${fvsFiltradas.filter(f=>f.status==='aprovada').length} aprovadas</div></div>
         <div class="kpi-card k-red"><div class="kpi-label">NC abertas</div><div class="kpi-value" style="color:var(--red)">${totalNC}</div><div class="kpi-sub">pendentes de correção</div></div>
         <div class="kpi-card k-accent"><div class="kpi-label">FVM em andamento</div><div class="kpi-value" style="color:var(--accent)">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='andamento').length}</div><div class="kpi-sub">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='encerrada').length} encerradas</div></div>
