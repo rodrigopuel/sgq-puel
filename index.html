@@ -7073,8 +7073,13 @@ let resultadoSelecionado = null;
 
 // Funções do modal de preenchimento
 function abrirModalPreenchimento(fvsId, criterioIndex, local, elemento) {
+  if (window.fvsAtual?.status === 'encerrada') {
+    toast('Esta FVS está encerrada e não pode ser editada.', 'error');
+    return;
+  }
+
   console.log('🔍 DEBUG abrirModalPreenchimento:', { fvsId, criterioIndex, local });
-  
+
   // Verificar se célula tem NC ou RC
   const localIndex = window.fvsAtual.locais.indexOf(local);
   const chave = `${criterioIndex}-${localIndex}`;
