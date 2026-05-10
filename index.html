@@ -2742,10 +2742,28 @@ async function excluirOcorrencia(fvsId, ocorrenciaId) {
 }
 
 async function encerrarFVS(fvsId) {
+  const fvs = window.fvsAtual;
+  if (fvs) {
+    const totalGrade = (fvs.criterios || []).length * (fvs.locais || []).length;
+    const resultados = fvs.resultados || {};
+    const preenchidos = Object.keys(resultados).length;
+    const brancos = totalGrade - preenchidos;
+    const ncs = Object.values(resultados).filter(v => v === 'NC').length;
+
+    if (brancos > 0) {
+      toast(`Não é possível encerrar: há ${brancos} célula${brancos !== 1 ? 's' : ''} em branco.`, 'error');
+      return;
+    }
+    if (ncs > 0) {
+      toast(`Não é possível encerrar: há ${ncs} célula${ncs !== 1 ? 's' : ''} com NC pendente.`, 'error');
+      return;
+    }
+  }
+
   if (!confirm('Deseja encerrar esta FVS? Esta ação não poderá ser desfeita.')) {
     return;
   }
-  
+
   try {
     const client = await esperarSupabase();
     await client.update('fvs', fvsId, {
