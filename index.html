@@ -1346,7 +1346,7 @@ async function renderFVS(m){
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
                   <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
-                    <div style="height:100%;width:${progresso.percentual}%;background:${fvs.status==='encerrada'?'var(--green)':'var(--red)'};border-radius:3px"></div>
+                    <div style="height:100%;width:${progresso.percentual}%;background:${progresso.percentual===100?'var(--green)':'var(--red)'};border-radius:3px"></div>
                   </div>
                   <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICA ${ica}%</span>
                 </div>
@@ -1386,7 +1386,7 @@ async function renderFVS(m){
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
                   <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
-                    <div style="height:100%;width:${progresso.percentual}%;background:${fvs.status==='encerrada'?'var(--green)':'var(--red)'};border-radius:3px"></div>
+                    <div style="height:100%;width:${progresso.percentual}%;background:${progresso.percentual===100?'var(--green)':'var(--red)'};border-radius:3px"></div>
                   </div>
                   <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICA ${ica}%</span>
                 </div>
