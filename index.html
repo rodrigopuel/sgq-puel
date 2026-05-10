@@ -1770,10 +1770,11 @@ async function abrirFVS(fvsId) {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div style="display:flex;gap:20px">
             ${calcularResumoVerificacoes(fvs).map(item => {
-              const textoCompleto = item.tipo === 'C' ? 'Conforme' : 
-                                 item.tipo === 'NC' ? 'Não Conforme' : 
-                                 item.tipo === 'RC' ? 'Reinspecionado Conforme' : 
-                                 item.tipo === 'NA' ? 'Não Aplicável' : item.tipo;
+              const textoCompleto = item.tipo === 'C' ? 'Conforme' :
+                                 item.tipo === 'NC' ? 'Não Conforme' :
+                                 item.tipo === 'RC' ? 'Reinspecionado Conforme' :
+                                 item.tipo === 'NA' ? 'Não Aplicável' :
+                                 item.tipo === 'B' ? 'Em Branco' : item.tipo;
               return `
                 <div style="display:flex;align-items:center;gap:4px">
                   <div style="font-size:14px;color:${item.cor};font-family:var(--font-cond)">${item.quantidade}</div>
@@ -2891,31 +2892,24 @@ async function gerarPDF_FVS(fvsId) {
 
 function calcularResumoVerificacoes(fvs) {
   const resultados = fvs.resultados || {};
-  const total = Object.keys(resultados).length;
-  
-  if (total === 0) {
-    return [
-      { tipo: 'C', quantidade: 0, percentual: 0, cor: '#22c55e' },
-      { tipo: 'NC', quantidade: 0, percentual: 0, cor: '#ef4444' },
-      { tipo: 'RC', quantidade: 0, percentual: 0, cor: '#a855f7' },
-      { tipo: 'NA', quantidade: 0, percentual: 0, cor: '#5a6480' }
-    ];
-  }
-  
+  const totalGrade = (fvs.criterios || []).length * (fvs.locais || []).length;
+  const totalPreenchido = Object.keys(resultados).length;
+  const branco = totalGrade - totalPreenchido;
+
   const contagem = { C: 0, NC: 0, RC: 0, NA: 0 };
-  
   Object.values(resultados).forEach(valor => {
-    if (contagem.hasOwnProperty(valor)) {
-      contagem[valor]++;
-    }
+    if (contagem.hasOwnProperty(valor)) contagem[valor]++;
   });
-  
-  return [
-    { tipo: 'C', quantidade: contagem.C, percentual: (contagem.C / total) * 100, cor: '#22c55e' },
-    { tipo: 'NC', quantidade: contagem.NC, percentual: (contagem.NC / total) * 100, cor: '#ef4444' },
-    { tipo: 'RC', quantidade: contagem.RC, percentual: (contagem.RC / total) * 100, cor: '#a855f7' },
-    { tipo: 'NA', quantidade: contagem.NA, percentual: (contagem.NA / total) * 100, cor: '#5a6480' }
-  ].filter(item => item.quantidade > 0);
+
+  const base = totalGrade || 1;
+  const itens = [
+    { tipo: 'C', quantidade: contagem.C, percentual: (contagem.C / base) * 100, cor: '#22c55e' },
+    { tipo: 'NC', quantidade: contagem.NC, percentual: (contagem.NC / base) * 100, cor: '#ef4444' },
+    { tipo: 'RC', quantidade: contagem.RC, percentual: (contagem.RC / base) * 100, cor: '#a855f7' },
+    { tipo: 'NA', quantidade: contagem.NA, percentual: (contagem.NA / base) * 100, cor: '#5a6480' },
+    { tipo: 'B', quantidade: branco, percentual: (branco / base) * 100, cor: '#3a3f52' }
+  ];
+  return itens.filter(item => item.quantidade > 0);
 }
 
 function calcularPercentualConforme(fvs) {
