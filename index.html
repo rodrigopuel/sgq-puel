@@ -4741,9 +4741,10 @@ async function renderAplicacaoIS(m) {
               ? `<div><span class="tag" style="font-size:10px;background:rgba(100,160,255,.15);color:#60a5fa;border:1px solid rgba(100,160,255,.3)">${apls.length} registro${apls.length > 1 ? 's' : ''}</span><div style="font-size:10px;color:var(--text3);margin-top:3px">Última: ${new Date(ultimaApl.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR')}</div></div>`
               : `<span style="font-size:11px;color:var(--text3)">Nenhuma aplicação</span>`;
             const prog = calcularProgressoFVS(fvs);
+            const progCor = prog.percentual === 100 ? 'var(--green)' : 'var(--red)';
             const progBar = `<div style="display:flex;align-items:center;gap:8px">
               <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;min-width:80px">
-                <div style="height:100%;width:${prog.percentual}%;background:${prog.cor};border-radius:3px"></div>
+                <div style="height:100%;width:${prog.percentual}%;background:${progCor};border-radius:3px"></div>
               </div>
               <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3);white-space:nowrap">${prog.percentual}%</span>
             </div>`;
