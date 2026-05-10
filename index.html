@@ -162,6 +162,7 @@ tr:hover td{background:var(--bg3);color:var(--text)}
 .tag-rev{background:#1a2035;color:#60a5fa;border:1px solid #1e3a6e}
 .tag-vigor{background:#14532d;color:#4ade80;border:1px solid #166534}
 .tag-rascunho{background:#451a03;color:#fb923c;border:1px solid #7c2d12}
+.tag-aprov{background:#1e3a5f;color:#60a5fa;border:1px solid #1d4ed8}
 
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center;padding:16px}
 .modal-overlay.open{display:flex}
@@ -1342,7 +1343,7 @@ async function renderFVS(m){
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
                     <div style="display:flex;gap:6px;align-items:center">
-                      <span class="tag ${fvs.status==='andamento'?'tag-and':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':'ENCERRADA'}</span>
+                      <span class="tag ${fvs.status==='andamento'?'tag-and':fvs.status==='aprovada'?'tag-aprov':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':fvs.status==='aprovada'?'APROVADA':'ENCERRADA'}</span>
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
                       ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
@@ -1382,7 +1383,7 @@ async function renderFVS(m){
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
                     <div style="display:flex;gap:6px;align-items:center">
-                      <span class="tag ${fvs.status==='andamento'?'tag-and':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':'ENCERRADA'}</span>
+                      <span class="tag ${fvs.status==='andamento'?'tag-and':fvs.status==='aprovada'?'tag-aprov':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':fvs.status==='aprovada'?'APROVADA':'ENCERRADA'}</span>
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
                       ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
@@ -1764,20 +1765,28 @@ async function abrirFVS(fvsId) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:16px">
-            <span class="tag ${fvs.status === 'andamento' ? 'tag-and' : 'tag-ok'}" style="font-size:11px;padding:4px 8px">
-              ${fvs.status === 'andamento' ? 'EM ANDAMENTO' : 'ENCERRADA'}
+            <span class="tag ${fvs.status === 'andamento' ? 'tag-and' : fvs.status === 'aprovada' ? 'tag-aprov' : 'tag-ok'}" style="font-size:11px;padding:4px 8px">
+              ${fvs.status === 'andamento' ? 'EM ANDAMENTO' : fvs.status === 'aprovada' ? 'APROVADA' : 'ENCERRADA'}
             </span>
             ${fvs.fechamento ? `
               <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">
                 Encerrada: ${new Date(fvs.fechamento).toLocaleDateString('pt-BR')}
               </span>
             ` : ''}
-            ${['admin','engenheiro'].includes(usuarioAtual?.perfil) ? `<button onclick="editarEngenheiroFVS('${fvs.id}')" title="Alterar engenheiro responsável"
-              style="margin-top:4px;background:none;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 4px;border-radius:4px;transition:color .15s"
-              onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
-              Eng. responsável
-            </button>` : ''}
+            ${['admin','engenheiro'].includes(usuarioAtual?.perfil) ? `
+              <button onclick="editarEngenheiroFVS('${fvs.id}')" title="Alterar engenheiro responsável"
+                style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font-mono);font-weight:600;letter-spacing:.4px;padding:4px 10px;border-radius:12px;border:1px solid #334155;background:#1e293b;color:#94a3b8;cursor:pointer;transition:all .15s"
+                onmouseover="this.style.borderColor='#60a5fa';this.style.color='#60a5fa'" onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
+                ENG. RESPONSÁVEL
+              </button>` : ''}
+            ${usuarioAtual?.perfil === 'admin' ? `
+              <button onclick="aprovarFVS('${fvs.id}')" title="Aprovar FVS"
+                style="margin-top:4px;display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font-mono);font-weight:600;letter-spacing:.4px;padding:4px 10px;border-radius:12px;border:1px solid ${fvs.status === 'encerrada' ? '#1d4ed8' : '#334155'};background:${fvs.status === 'encerrada' ? '#1e3a5f' : '#1a1a2e'};color:${fvs.status === 'encerrada' ? '#60a5fa' : '#475569'};cursor:pointer;transition:all .15s"
+                onmouseover="this.style.borderColor='#3b82f6';this.style.color='#93c5fd'" onmouseout="this.style.borderColor='${fvs.status === 'encerrada' ? '#1d4ed8' : '#334155'}';this.style.color='${fvs.status === 'encerrada' ? '#60a5fa' : '#475569'}'">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8l4 4 8-8"/></svg>
+                APROVAR FVS
+              </button>` : ''}
           </div>
         </div>
       </div>
@@ -2789,6 +2798,28 @@ async function encerrarFVS(fvsId) {
   } catch (error) {
     console.error('Erro ao encerrar FVS:', error);
     toast('Erro ao encerrar FVS', 'error');
+  }
+}
+
+async function aprovarFVS(fvsId) {
+  if (usuarioAtual?.perfil !== 'admin') {
+    toast('Somente o perfil admin pode aprovar FVS.', 'error');
+    return;
+  }
+  if (window.fvsAtual?.status !== 'encerrada') {
+    toast('Somente FVS encerradas podem ser aprovadas.', 'error');
+    return;
+  }
+  if (!confirm('Deseja aprovar esta FVS?')) return;
+  try {
+    const client = await esperarSupabase();
+    await client.update('fvs', fvsId, { status: 'aprovada' });
+    window.fvsAtual.status = 'aprovada';
+    toast('FVS aprovada com sucesso!', 'success');
+    abrirFVS(fvsId);
+  } catch (error) {
+    console.error('Erro ao aprovar FVS:', error);
+    toast('Erro ao aprovar FVS', 'error');
   }
 }
 
