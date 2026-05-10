@@ -2843,8 +2843,45 @@ async function excluirFVS(fvsId, fvsCod, event) {
   }
 }
 
-function gerarPDF_FVS(fvsId) {
-  toast('Funcionalidade de PDF em desenvolvimento', 'info');
+async function gerarPDF_FVS(fvsId) {
+  try {
+    const fvs = window.fvsAtual;
+    if (!fvs) { toast('Dados da FVS não carregados', 'error'); return; }
+
+    const client = await esperarSupabase();
+    const [obras, usuarios, templates] = await Promise.all([
+      client.getObras(),
+      client.getUsuarios(),
+      client.getTemplatesFVS()
+    ]);
+
+    // Montar ou reutilizar container de preview
+    let preview = document.getElementById('pdf-preview');
+    if (!preview) {
+      preview = document.createElement('div');
+      preview.id = 'pdf-preview';
+      preview.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;overflow:auto;padding:24px 16px';
+      preview.innerHTML = `
+        <div id="pdf-toolbar-bar" style="max-width:900px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="color:white;font-size:14px;font-weight:600">Pré-visualização do PDF</span>
+          <div style="display:flex;gap:8px">
+            <button onclick="window.print()" style="background:#CAB484;border:none;color:#1a1a1a;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700">🖨 Imprimir / Salvar PDF</button>
+            <button onclick="fecharPDF()" style="background:rgba(255,255,255,.15);border:none;color:white;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px">✕ Fechar</button>
+          </div>
+        </div>
+        <div id="pdf-content"></div>`;
+      document.body.appendChild(preview);
+    }
+
+    const c = document.getElementById('pdf-content');
+    c.innerHTML = '';
+    c.appendChild(mkPgFVS(fvs, obras, usuarios, templates));
+    preview.style.display = 'block';
+    preview.scrollTop = 0;
+  } catch (e) {
+    console.error('Erro ao gerar PDF:', e);
+    toast('Erro ao gerar PDF: ' + e.message, 'error');
+  }
 }
 
 function calcularResumoVerificacoes(fvs) {
