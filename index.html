@@ -380,7 +380,7 @@ td.td-cel span{font-weight:700;font-size:11px}
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 6h6M5 9h6M5 12h4"/></svg>
             Template FVM
           </div>
-          <div class="gear-menu-item" onclick="navegar('templates-is')">
+          <div id="gear-item-templates-is" class="gear-menu-item" onclick="navegar('templates-is')">
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v2H2zM2 7h8v2H2zM2 11h10v2H2z"/></svg>
             Template IS
           </div>
@@ -598,6 +598,7 @@ async function iniciarApp(){
   try {
     document.getElementById('user-name-display').textContent=usuarioAtual.nome.split(' ')[0];
     document.getElementById('user-avatar').textContent=usuarioAtual.nome[0];
+    document.getElementById('gear-item-templates-is').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
     
     await renderObraList();
     initSidebar();
@@ -623,6 +624,11 @@ async function navegar(s){
   // Restringir Consultor IA a admin e engenheiro
   if (s === 'consultor' && !['admin','engenheiro','diretor'].includes(usuarioAtual?.perfil)) {
     toast('Função indisponível para seu perfil', 'error');
+    return;
+  }
+
+  if (s === 'templates-is' && usuarioAtual?.perfil !== 'admin') {
+    toast('Acesso restrito ao perfil Administrador', 'error');
     return;
   }
   
