@@ -4523,10 +4523,10 @@ async function salvarTemplateIS() {
     });
     setP(100, 'Concluído!');
     toast(_isNovaRevisao ? `Nova revisão publicada (${versao})!` : 'IS anexada com sucesso!', 'success');
-    setTimeout(() => { fecharModalTemplateIS(); renderTemplatesIS(document.getElementById('main')); }, 600);
+    setTimeout(() => { fecharModalTemplateIS(); renderTemplatesIS(document.getElementById('main-content')); }, 600);
   } catch (e) {
     console.error('Erro ao salvar IS:', e);
-    toast('Erro ao enviar. Verifique se o bucket "instrucoes-servico" existe no Supabase.', 'error');
+    toast('Erro: ' + (e.message || JSON.stringify(e)), 'error');
     btn.disabled = false;
     prog.style.display = 'none';
   }
