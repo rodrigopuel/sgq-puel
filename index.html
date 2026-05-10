@@ -855,7 +855,7 @@ function gerarDonutNCTipoServico(fl, templates){
 
 function gerarDonutNCTipoProblema(fl){
   const counts={};
-  const labels={'mao_obra':'Mão de obra','material':'Material','metodo':'Método','medidas':'Medidas','maquinas':'Máquinas','meio_ambiente':'Meio ambiente'};
+  const labels={'mao_obra':'Mão de obra','material':'Material','metodo':'Método','meio_ambiente':'Meio ambiente','projeto':'Projeto','informacao':'Informação','maquinario':'Maquinário'};
   fl.forEach(fvs=>{(fvs.ocorrencias||[]).forEach(oc=>{if((oc.status==='aberta'||oc.status==='encerrada')&&oc.tipo){const n=labels[oc.tipo]||oc.tipo;counts[n]=(counts[n]||0)+1;}});});
   if(!Object.keys(counts).length)return`<div class="donut-wrap"><div style="text-align:center;padding:40px;color:var(--text3);font-size:13px"><div style="margin-bottom:8px">📊</div><div>Sem NC registradas</div></div></div>`;
   const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
@@ -1968,7 +1968,7 @@ function renderOcorrenciasFVS(ocorrencias) {
   const corrigidas = ocorrencias.filter(o => o.status === 'encerrada');
   count.textContent = `${abertas.length} EM ABERTO`;
 
-  const tipoLabels = {'mao_obra':'Mão de obra','material':'Material','metodo':'Método','medidas':'Medidas','maquinas':'Máquinas','meio_ambiente':'Meio ambiente'};
+  const tipoLabels = {'mao_obra':'Mão de obra','material':'Material','metodo':'Método','meio_ambiente':'Meio ambiente','projeto':'Projeto','informacao':'Informação','maquinario':'Maquinário'};
 
   const renderCard = oc => {
     const rc = oc.status === 'encerrada';
@@ -2059,9 +2059,10 @@ function abrirModalOcorrencia(fvsId, criterioIndex, local, tipo) {
               <option value="mao_obra">Mão de obra</option>
               <option value="material">Material</option>
               <option value="metodo">Método</option>
-              <option value="medidas">Medidas</option>
-              <option value="maquinas">Máquina</option>
               <option value="meio_ambiente">Meio Ambiente</option>
+              <option value="projeto">Projeto</option>
+              <option value="informacao">Informação</option>
+              <option value="maquinario">Maquinário</option>
             </select>
           </div>
           <div class="field">
@@ -2075,6 +2076,10 @@ function abrirModalOcorrencia(fvsId, criterioIndex, local, tipo) {
           <div class="field">
             <label>Prazo para Correção *</label>
             <input type="date" id="ocorrencia-prazo" required>
+          </div>
+          <div class="field">
+            <label>Observações</label>
+            <textarea id="ocorrencia-obs" rows="2" placeholder="Observações adicionais (opcional)..."></textarea>
           </div>
           <div class="field">
             <label>Foto da Não Conformidade *</label>
@@ -2148,6 +2153,7 @@ async function salvarOcorrencia() {
     const responsavel = document.getElementById('ocorrencia-responsavel').value.trim();
     const acao = document.getElementById('ocorrencia-acao').value.trim();
     const prazo = document.getElementById('ocorrencia-prazo').value;
+    const obs = document.getElementById('ocorrencia-obs')?.value.trim() || '';
     
     // Validação
     if (!descricao || !tipoProblema || !responsavel || !acao || !prazo) {
@@ -2192,6 +2198,7 @@ async function salvarOcorrencia() {
       prazo: prazo,
       status: 'aberta',
       rc_foto: fotoOcorrenciaAtual ? fotoOcorrenciaAtual : null,
+      obs: obs || null,
     };
     
     console.log('Salvando ocorrência...', {
