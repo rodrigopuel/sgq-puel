@@ -4751,35 +4751,25 @@ async function renderAplicacaoIS(m) {
   }
 }
 
-async function aplISAbrirModal(fvsIdPreSelecionado) {
-  _aplFvsId = fvsIdPreSelecionado || null;
+async function aplISAbrirModal(fvsId) {
+  _aplFvsId     = fvsId;
   _aplFotoAtual = null;
-  _aplIsInfo = null;
+  _aplIsInfo    = null;
 
-  // Preencher select de FVS
-  const client = await esperarSupabase();
-  const [fvsList, isRegistros] = await Promise.all([
-    client.get('fvs', { obra_id: obraSelecionadaId }),
-    client.get('fvs_is', {})
-  ]);
-  const isMap = {};
-  isRegistros.forEach(r => {
-    if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) isMap[r.fvs_id] = r;
-  });
+  // Buscar dados da FVS e IS vigente
+  const fvs    = (window._aplFvsListCache || []).find(f => f.id === fvsId);
+  const isMap  = window._aplIsMapCache || {};
+  const is     = fvs ? isMap[fvs.template_id] : null;
 
-  const sel = document.getElementById('apl-fvs-select');
-  sel.innerHTML = '<option value="">Selecione a FVS...</option>' +
-    fvsList.map(f => {
-      const is = isMap[f.template_id];
-      const label = `${f.cod} — ${f.servico}${is ? ` (IS ${is.versao})` : ' (sem IS)'}`;
-      return `<option value="${f.id}" data-template="${f.template_id || ''}">${label}</option>`;
-    }).join('');
+  document.getElementById('apl-fvs-label').textContent = fvs ? `${fvs.cod} — ${fvs.servico}` : '—';
 
-  if (fvsIdPreSelecionado) {
-    sel.value = fvsIdPreSelecionado;
-    aplISOnFvsChange();
+  const infoDiv = document.getElementById('apl-is-info');
+  if (!is) {
+    infoDiv.innerHTML = `<span style="color:var(--red)">⚠ Esta FVS não possui IS anexada. Anexe uma IS antes de registrar.</span>`;
+    _aplIsInfo = null;
   } else {
-    document.getElementById('apl-is-info').style.display = 'none';
+    infoDiv.innerHTML = `IS vigente: <strong style="color:var(--text)">${is.versao}</strong> · ${is.arquivo_nome}`;
+    _aplIsInfo = { versao: is.versao, arquivo_url: is.arquivo_url, arquivo_tipo: is.arquivo_tipo };
   }
 
   // Limpar campos
@@ -4790,30 +4780,8 @@ async function aplISAbrirModal(fvsIdPreSelecionado) {
   document.getElementById('apl-obs').value = '';
   document.getElementById('apl-foto-preview').style.display = 'none';
   document.getElementById('apl-foto-input').value = '';
+  document.getElementById('apl-btn-salvar').disabled = false;
   document.getElementById('modal-aplicacao-is').classList.add('open');
-
-  // Armazenar isMap para uso no onchange
-  window._aplIsMap = isMap;
-}
-
-function aplISOnFvsChange() {
-  const sel = document.getElementById('apl-fvs-select');
-  const opt = sel.options[sel.selectedIndex];
-  const templateId = opt?.dataset?.template;
-  const infoDiv = document.getElementById('apl-is-info');
-  if (!templateId || !window._aplIsMap) { infoDiv.style.display = 'none'; _aplIsInfo = null; return; }
-  const is = window._aplIsMap[templateId];
-  if (!is) {
-    infoDiv.style.display = 'block';
-    infoDiv.style.borderLeftColor = 'var(--red)';
-    infoDiv.innerHTML = `<span style="color:var(--red);font-size:12px">⚠ Esta FVS não possui IS anexada. Anexe uma IS antes de registrar a aplicação.</span>`;
-    _aplIsInfo = null;
-  } else {
-    infoDiv.style.display = 'block';
-    infoDiv.style.borderLeftColor = 'var(--accent)';
-    infoDiv.innerHTML = `<span style="font-size:12px;color:var(--text2)">IS vigente: <strong style="color:var(--text)">${is.versao}</strong> · ${is.arquivo_nome}</span>`;
-    _aplIsInfo = { versao: is.versao, arquivo_url: is.arquivo_url, arquivo_tipo: is.arquivo_tipo };
-  }
 }
 
 function aplISFecharModal() {
@@ -4911,15 +4879,15 @@ function aplISRemoverFoto() {
 }
 
 async function aplISSalvar() {
-  const fvsId       = document.getElementById('apl-fvs-select').value;
+  const fvsId       = _aplFvsId;
   const data        = document.getElementById('apl-data').value;
   const responsavel = document.getElementById('apl-responsavel').value.trim();
   const local       = document.getElementById('apl-local').value.trim();
   const partic      = document.getElementById('apl-participantes').value.trim();
   const obs         = document.getElementById('apl-obs').value.trim();
 
-  if (!fvsId)       { toast('Selecione a FVS', 'error'); return; }
-  if (!_aplIsInfo)  { toast('A FVS selecionada não possui IS anexada', 'error'); return; }
+  if (!fvsId)       { toast('FVS não identificada', 'error'); return; }
+  if (!_aplIsInfo)  { toast('Esta FVS não possui IS anexada', 'error'); return; }
   if (!data)        { toast('Informe a data da aplicação', 'error'); return; }
   if (!responsavel) { toast('Informe o responsável pela instrução', 'error'); return; }
   if (!partic)      { toast('Informe os participantes', 'error'); return; }
@@ -7443,13 +7411,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
 
-      <div class="field">
-        <label>FVS *</label>
-        <select id="apl-fvs-select" onchange="aplISOnFvsChange()" required>
-          <option value="">Selecione a FVS...</option>
-        </select>
+      <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--radius);border-left:3px solid var(--accent)">
+        <div id="apl-fvs-label" style="font-size:13px;font-weight:600;color:var(--text)"></div>
+        <div id="apl-is-info" style="font-size:12px;color:var(--text2);margin-top:4px"></div>
       </div>
-      <div id="apl-is-info" style="display:none;padding:10px 12px;background:var(--bg3);border-radius:var(--radius);border-left:3px solid var(--accent)"></div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="field">
