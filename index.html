@@ -951,11 +951,6 @@ async function renderDashboard(m){
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de problema</div>${gerarDonutNCTipoProblema(fvsFiltradas)}</div>
       </div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px">Instrução de Serviço (IS)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-        <div class="kpi-card" style="padding:14px"><div class="kpi-label">FVS com IS vigente</div><div class="kpi-value" style="color:var(--green);font-size:28px">${fvsComIS.length}</div><div class="kpi-sub">de ${fvsFiltradas.length} FVS</div></div>
-        <div class="kpi-card" style="padding:14px"><div class="kpi-label">FVS sem aplicação IS</div><div class="kpi-value" style="color:${fvsFiltradas.filter(f=>!aplPorFvs[f.id]).length>0?'var(--red)':'var(--green)'};font-size:28px">${fvsFiltradas.filter(f=>!aplPorFvs[f.id]).length}</div><div class="kpi-sub">sem nenhum registro</div></div>
-        <div class="kpi-card" style="padding:14px"><div class="kpi-label">Total de aplicações</div><div class="kpi-value" style="color:var(--accent);font-size:28px">${aplEscopo.length}</div><div class="kpi-sub">registros IS aplicadas</div></div>
-      </div>
       ${fvsFiltradas.length ? `
       <div class="table-wrap"><div class="table-scroll"><table>
         <thead><tr>
