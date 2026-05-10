@@ -4610,26 +4610,19 @@ async function isCarregarHistorico(templateId) {
 }
 
 async function isReverterVersao(templateId) {
-  if (!confirm('Reverter para a versão anterior? A versão vigente passará para o histórico.')) return;
+  const client = await esperarSupabase();
+  const todos = await client.get('fvs_is', { fvs_id: templateId });
+  const atual = todos.sort((a, b) => b.data_upload.localeCompare(a.data_upload))[0];
+  if (!atual) { toast('Registro IS não encontrado', 'error'); return; }
+
+  const hist = atual.historico || [];
+  if (!hist.length) { toast('Nenhuma versão anterior para reverter', 'error'); return; }
+
+  const versaoAnterior = hist[hist.length - 1];
+  if (!confirm(`Reverter para ${versaoAnterior.versao}?\n\nA versão vigente (${atual.versao}) será apagada permanentemente. Esta ação não pode ser desfeita.`)) return;
+
   try {
-    const client = await esperarSupabase();
-    const todos = await client.get('fvs_is', { fvs_id: templateId });
-    const atual = todos.sort((a, b) => b.data_upload.localeCompare(a.data_upload))[0];
-    if (!atual) { toast('Registro IS não encontrado', 'error'); return; }
-
-    const hist = atual.historico || [];
-    if (!hist.length) { toast('Nenhuma versão anterior para reverter', 'error'); return; }
-
-    const versaoAnterior = hist[hist.length - 1];
-    const novoHistorico  = hist.slice(0, -1);
-
-    // Adiciona vigente atual ao histórico e restaura anterior
-    novoHistorico.push({
-      versao: atual.versao, arquivo_nome: atual.arquivo_nome,
-      arquivo_url: atual.arquivo_url, arquivo_tipo: atual.arquivo_tipo,
-      data_upload: atual.data_upload
-    });
-
+    // Restaura versão anterior e remove-a do histórico; vigente é descartada
     await client.update('fvs_is', atual.id, {
       versao: versaoAnterior.versao,
       arquivo_nome: versaoAnterior.arquivo_nome,
@@ -4637,7 +4630,7 @@ async function isReverterVersao(templateId) {
       arquivo_tipo: versaoAnterior.arquivo_tipo,
       arquivo_path: versaoAnterior.arquivo_path || '',
       data_upload: new Date().toISOString(),
-      historico: novoHistorico
+      historico: hist.slice(0, -1)
     });
 
     toast(`Revertido para ${versaoAnterior.versao} com sucesso!`, 'success');
