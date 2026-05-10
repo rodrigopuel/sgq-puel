@@ -1410,7 +1410,7 @@ async function renderFVS(m){
       <!-- Seção APROVADAS -->
       ${aprovadas.length > 0 ? `
         <div style="margin-top:20px">
-          <div style="font-size:12px;font-family:var(--font-mono);color:#60a5fa;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">APROVADAS</div>
+          <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">APROVADAS</div>
           ${aprovadas.map(fvs => {
             const obra = obras.find(o => o.id === fvs.obra_id);
             const progresso = calcularProgressoFVS(fvs);
