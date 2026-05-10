@@ -1950,7 +1950,7 @@ function renderOcorrenciasFVS(ocorrencias) {
       ${oc.acao ? `<div style="font-size:12px;color:var(--text3);margin-bottom:4px"><strong style="color:var(--text2)">Ação:</strong> ${oc.acao}</div>` : ''}
       ${(oc.rc_foto?.nc?.data || oc.rc_foto?.data) ? `<div style="margin-top:8px"><a href="#" onclick="verFotoNC(event,'${oc.id}')" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Ver foto da não conformidade</a></div>` : ''}
       ${oc.rc_foto?.correcao?.data ? `<div style="margin-top:4px"><a href="#" onclick="verFotoCorrecao(event,'${oc.id}')" style="font-size:11px;color:var(--green);text-decoration:none">📷 Ver foto da correção</a></div>` : ''}
-      ${window.fvsAtual?.status !== 'encerrada' && !rc ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" onclick="abrirModalRC('${oc.fvs_id}','${oc.id}')">✓ Marcar como corrigida (RC)</button></div>` : ''}
+      ${!['encerrada','aprovada'].includes(window.fvsAtual?.status) && !rc ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" onclick="abrirModalRC('${oc.fvs_id}','${oc.id}')">✓ Marcar como corrigida (RC)</button></div>` : ''}
     </div>`;
   };
 
@@ -2826,6 +2826,10 @@ async function aprovarFVS(fvsId) {
 async function editarEngenheiroFVS(fvsId) {
   if (!['admin','engenheiro'].includes(usuarioAtual?.perfil)) {
     toast('Sem permissão para alterar o engenheiro responsável.', 'error');
+    return;
+  }
+  if (['encerrada','aprovada'].includes(window.fvsAtual?.status)) {
+    toast('Esta FVS está encerrada/aprovada e não pode ser editada.', 'error');
     return;
   }
   const atual = window.fvsAtual?.engenheiro_id || '';
@@ -7222,8 +7226,8 @@ let resultadoSelecionado = null;
 
 // Funções do modal de preenchimento
 function abrirModalPreenchimento(fvsId, criterioIndex, local, elemento) {
-  if (window.fvsAtual?.status === 'encerrada') {
-    toast('Esta FVS está encerrada e não pode ser editada.', 'error');
+  if (['encerrada','aprovada'].includes(window.fvsAtual?.status)) {
+    toast('Esta FVS está encerrada/aprovada e não pode ser editada.', 'error');
     return;
   }
 
