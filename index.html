@@ -4682,54 +4682,69 @@ async function renderAplicacaoIS(m) {
       client.get('fvs_is', {})
     ]);
 
+    // IS vigente por template_id
     const isMap = {};
     isRegistros.forEach(r => {
       if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) isMap[r.fvs_id] = r;
     });
 
-    // Filtrar aplicações da obra atual
-    const fvsIds = new Set(fvsList.map(f => f.id));
-    const aplObra = aplicacoes.filter(a => fvsIds.has(a.fvs_id));
-    aplObra.sort((a, b) => b.data_aplicacao.localeCompare(a.data_aplicacao));
+    // Aplicações por fvs_id
+    const aplPorFvs = {};
+    aplicacoes.forEach(a => {
+      if (!aplPorFvs[a.fvs_id]) aplPorFvs[a.fvs_id] = [];
+      aplPorFvs[a.fvs_id].push(a);
+    });
 
-    const fvsMap = {};
-    fvsList.forEach(f => { fvsMap[f.id] = f; });
-
+    fvsList.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
+    const totalApls = aplicacoes.filter(a => fvsList.some(f => f.id === a.fvs_id)).length;
     const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual?.perfil);
 
     m.innerHTML = `
       <div class="page-header">
         <div>
           <div class="page-title">Aplicação IS</div>
-          <div class="page-sub">${aplObra.length} registro${aplObra.length !== 1 ? 's' : ''} nesta obra</div>
+          <div class="page-sub">${fvsList.length} FVS · ${totalApls} aplicação${totalApls !== 1 ? 'ões' : ''} registrada${totalApls !== 1 ? 's' : ''}</div>
         </div>
-        ${pA ? `<button class="btn btn-primary" onclick="aplISAbrirModal()">+ Novo Registro</button>` : ''}
       </div>
       <div class="table-wrap"><div class="table-scroll"><table>
         <thead><tr>
-          <th>Data</th><th>FVS</th><th>IS Aplicada</th><th>Responsável</th><th>Participantes</th><th>Local</th><th>Ações</th>
+          <th>FVS</th><th>IS Vigente</th><th>Aplicações</th><th>Ações</th>
         </tr></thead>
         <tbody>
-          ${aplObra.map(a => {
-            const fvs = fvsMap[a.fvs_id];
+          ${fvsList.map(fvs => {
+            const is = isMap[fvs.template_id];
+            const apls = aplPorFvs[fvs.id] || [];
+            apls.sort((a, b) => b.data_aplicacao.localeCompare(a.data_aplicacao));
+            const ultimaApl = apls[0];
+            const isInfo = is
+              ? `<div style="display:flex;align-items:center;gap:6px"><span class="tag tag-ok" style="font-size:10px">${is.versao}</span><span style="font-size:11px;color:var(--text2)">${is.arquivo_nome}</span></div>`
+              : `<span style="font-size:11px;color:var(--text3)">Sem IS anexada</span>`;
+            const aplInfo = apls.length
+              ? `<div><span class="tag" style="font-size:10px;background:rgba(100,160,255,.15);color:#60a5fa;border:1px solid rgba(100,160,255,.3)">${apls.length} registro${apls.length > 1 ? 's' : ''}</span><div style="font-size:10px;color:var(--text3);margin-top:3px">Última: ${new Date(ultimaApl.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR')}</div></div>`
+              : `<span style="font-size:11px;color:var(--text3)">Nenhuma aplicação</span>`;
             return `<tr>
-              <td style="font-family:var(--font-mono);font-size:11px;white-space:nowrap">${a.data_aplicacao ? new Date(a.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-              <td style="font-size:12px"><div style="font-weight:500">${fvs?.servico || '—'}</div><div style="font-size:10px;color:var(--text3)">${fvs?.cod || ''}</div></td>
-              <td><span class="tag tag-ok" style="font-size:10px">${a.is_versao || '—'}</span></td>
-              <td style="font-size:12px;color:var(--text2)">${a.responsavel_nome || '—'}</td>
-              <td style="font-size:12px;color:var(--text2);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${a.participantes || ''}">${a.participantes || '—'}</td>
-              <td style="font-size:12px;color:var(--text3)">${a.local_aplicacao || '—'}</td>
+              <td>
+                <div style="font-weight:500;font-size:13px">${fvs.servico}</div>
+                <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${fvs.cod}</div>
+              </td>
+              <td>${isInfo}</td>
+              <td>${aplInfo}</td>
               <td class="td-acoes">
-                <div style="display:flex;gap:6px">
-                  <button class="btn btn-ghost btn-xs" onclick="aplISVerRegistro('${a.id}')">🔍 Ver</button>
-                  ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="aplISExcluir('${a.id}')">🗑</button>` : ''}
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  ${pA ? `<button class="btn btn-primary btn-xs" onclick="aplISAbrirModal('${fvs.id}')">+ Registrar</button>` : ''}
+                  ${apls.length ? `<button class="btn btn-ghost btn-xs" onclick="aplISVerLista('${fvs.id}')">Ver ${apls.length}</button>` : ''}
                 </div>
               </td>
             </tr>`;
           }).join('')}
-          ${!aplObra.length ? `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhum registro de Aplicação IS</div><div class="empty-sub">Clique em "+ Novo Registro" para registrar a primeira aplicação</div></div></td></tr>` : ''}
+          ${!fvsList.length ? `<tr><td colspan="4"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma FVS criada nesta obra</div></div></td></tr>` : ''}
         </tbody>
       </table></div></div>`;
+
+    // Armazena dados para uso no modal e sub-lista
+    window._aplFvsListCache   = fvsList;
+    window._aplIsMapCache     = isMap;
+    window._aplPorFvsCache    = aplPorFvs;
   } catch (e) {
     console.error('Erro ao renderizar Aplicação IS:', e);
     m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar</div></div>';
@@ -4803,6 +4818,73 @@ function aplISOnFvsChange() {
 
 function aplISFecharModal() {
   document.getElementById('modal-aplicacao-is').classList.remove('open');
+}
+
+function aplISVerLista(fvsId) {
+  const fvs  = (window._aplFvsListCache || []).find(f => f.id === fvsId);
+  const apls = (window._aplPorFvsCache  || {})[fvsId] || [];
+  apls.sort((a, b) => b.data_aplicacao.localeCompare(a.data_aplicacao));
+
+  const anterior = document.getElementById('modal-apl-is-lista');
+  if (anterior) anterior.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-apl-is-lista';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:620px">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Aplicações IS</h3>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${fvs ? fvs.cod + ' — ' + fvs.servico : ''}</div>
+        </div>
+        <button class="btn modal-close" onclick="document.getElementById('modal-apl-is-lista').classList.remove('open')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Data</th>
+            <th style="text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">IS</th>
+            <th style="text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Responsável</th>
+            <th style="text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border)">Local</th>
+            <th style="border-bottom:1px solid var(--border)"></th>
+          </tr></thead>
+          <tbody>
+            ${apls.map(a => `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:10px 14px;font-size:12px;font-family:var(--font-mono);white-space:nowrap">${a.data_aplicacao ? new Date(a.data_aplicacao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+              <td style="padding:10px 14px"><span class="tag tag-ok" style="font-size:10px">${a.is_versao || '—'}</span></td>
+              <td style="padding:10px 14px;font-size:12px;color:var(--text2)">${a.responsavel_nome || '—'}</td>
+              <td style="padding:10px 14px;font-size:12px;color:var(--text3)">${a.local_aplicacao || '—'}</td>
+              <td style="padding:10px 14px">
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-xs" onclick="aplISVerRegistro('${a.id}')">🔍 Ver</button>
+                  ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="aplISExcluirDaLista('${a.id}','${fvsId}')">🗑</button>` : ''}
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-apl-is-lista').classList.remove('open')">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.classList.add('open');
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+}
+
+async function aplISExcluirDaLista(id, fvsId) {
+  if (!confirm('Excluir este registro? Esta ação não pode ser desfeita.')) return;
+  try {
+    const client = await esperarSupabase();
+    await client.remove('aplicacoes_is', id);
+    toast('Registro excluído', 'success');
+    document.getElementById('modal-apl-is-lista').classList.remove('open');
+    renderAplicacaoIS(document.getElementById('main-content'));
+  } catch (e) {
+    toast('Erro ao excluir: ' + e.message, 'error');
+  }
 }
 
 function aplISAbrirCamera() { document.getElementById('apl-foto-camera').click(); }
