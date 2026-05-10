@@ -1230,15 +1230,26 @@ async function encerrarObra(obraId) {
 async function renderFVS(m){
   try {
     const client = await esperarSupabase();
-    let fvsList = await client.getFVS();
-    const obras = await client.getObras();
-    
+    let [fvsList, obras, isRegistros] = await Promise.all([
+      client.getFVS(),
+      client.getObras(),
+      client.get('fvs_is', {})
+    ]);
+
     // Filtrar pela obra selecionada
     if (obraSelecionadaId) {
       fvsList = fvsList.filter(f => f.obra_id === obraSelecionadaId);
     }
     const obraAtual = obras.find(o => o.id === obraSelecionadaId);
-    
+
+    // IS vigente por template_id
+    const isMap = {};
+    isRegistros.forEach(r => {
+      if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) {
+        isMap[r.fvs_id] = r;
+      }
+    });
+
     // Carregar ocorrências para contagem de NC
     const todasOcorrencias = await client.getOcorrencias();
     fvsList.forEach(fvs => {
@@ -1292,7 +1303,8 @@ async function renderFVS(m){
             const ncCount = fvs.ocorrencias ? fvs.ocorrencias.filter(o => o.status === 'aberta').length : 0;
             const progresso = calcularProgressoFVS(fvs);
             const ica = calcularICA(fvs);
-            
+            const isVigente = isMap[fvs.template_id];
+
             return `
               <div class="fvs-card" onclick="abrirFVS('${fvs.id}')">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
@@ -1307,6 +1319,7 @@ async function renderFVS(m){
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
                       ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
+                    ${isVigente ? `<span class="tag" style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();isVerArquivo('${isVigente.arquivo_url}','${isVigente.arquivo_tipo}')" title="Ver Instrução de Serviço (${isVigente.versao})">📄 IS ${isVigente.versao}</span>` : ''}
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
@@ -1330,7 +1343,8 @@ async function renderFVS(m){
             const progresso = calcularProgressoFVS(fvs);
             const ica = calcularICA(fvs);
             const ncCount = fvs.ocorrencias ? fvs.ocorrencias.filter(o => o.status === 'aberta').length : 0;
-            
+            const isVigente = isMap[fvs.template_id];
+
             return `
               <div class="fvs-card" onclick="abrirFVS('${fvs.id}')">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
@@ -1345,6 +1359,7 @@ async function renderFVS(m){
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
                       ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
+                    ${isVigente ? `<span class="tag" style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();isVerArquivo('${isVigente.arquivo_url}','${isVigente.arquivo_tipo}')" title="Ver Instrução de Serviço (${isVigente.versao})">📄 IS ${isVigente.versao}</span>` : ''}
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
