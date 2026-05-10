@@ -909,7 +909,7 @@ async function renderDashboard(m){
       </div></div>
       <div class="kpi-grid">
         <div class="kpi-card k-accent"><div class="kpi-label">${obraSelecionada?'Obra selecionada':'Obras ativas'}</div><div class="kpi-value" style="color:var(--accent)">${obrasEscopo.length}</div><div class="kpi-sub">${obraSelecionada?'filtro aplicado':'em andamento'}</div></div>
-        <div class="kpi-card k-green"><div class="kpi-label">ICP Geral</div><div class="kpi-value" style="color:var(--green)">${icaGeral}%</div><div class="kpi-sub">índice de conformidade na 1ª insp.</div></div>
+        <div class="kpi-card k-green"><div class="kpi-label">ICP Geral</div><div class="kpi-value" style="color:var(--green)">${icpGeral}%</div><div class="kpi-sub">índice de conformidade na 1ª insp.</div></div>
         <div class="kpi-card k-amber"><div class="kpi-label">FVS em andamento</div><div class="kpi-value" style="color:var(--amber)">${fvsFiltradas.filter(f=>f.status==='andamento').length}</div><div class="kpi-sub">${fvsFiltradas.filter(f=>f.status==='encerrada').length} encerradas</div></div>
         <div class="kpi-card k-red"><div class="kpi-label">NC abertas</div><div class="kpi-value" style="color:var(--red)">${totalNC}</div><div class="kpi-sub">pendentes de correção</div></div>
         <div class="kpi-card k-accent"><div class="kpi-label">FVM em andamento</div><div class="kpi-value" style="color:var(--accent)">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='andamento').length}</div><div class="kpi-sub">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='encerrada').length} encerradas</div></div>
@@ -3597,7 +3597,7 @@ async function gerarRelatorioConsultor(escopo = null) {
         conformes: totC,
         naoConformes: totNC,
         reinspecionados: totRC,
-        naoAplicp: totNA,
+        naoAplica: totNA,
         totalInspecoes: totAll,
         ncDetalhe: ncAbertas.slice(0, 10).map(o => ({
           criterio: o.criterio_item,
@@ -3622,7 +3622,7 @@ DATA DO RELATÓRIO: ${hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: '
 
 DADOS GERAIS:
 - Obras ativas: ${obrasAtivas.length}
-- ICP geral (média): ${icaGeral}%
+- ICP geral (média): ${icpGeral}%
 - NC abertas totais: ${totalNC}
 - NC atrasadas: ${totalAtrasadas}
 
@@ -3699,14 +3699,14 @@ Seja analítico e profissional. Use linguagem técnica de engenharia civil. Base
       dataFormatada,
       horaFormatada,
       obrasCount: obrasAtivas.length,
-      icaGeral,
+      icpGeral,
       totalNC,
       totalAtrasadas,
       fvmPendentes: fvmList.filter(f=>f.status==='andamento').length,
       escopo
     }));
 
-    renderRelatorioConsultor(container, { texto, dataFormatada, horaFormatada, obrasCount: obrasAtivas.length, icaGeral, totalNC, totalAtrasadas, fvmPendentes: fvmList.filter(f=>f.status==='andamento').length });
+    renderRelatorioConsultor(container, { texto, dataFormatada, horaFormatada, obrasCount: obrasAtivas.length, icpGeral, totalNC, totalAtrasadas, fvmPendentes: fvmList.filter(f=>f.status==='andamento').length });
 
   } catch (error) {
     console.error('Erro no Consultor:', error);
