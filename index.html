@@ -1487,9 +1487,7 @@ function abrirModalNovaFVS() {
           </div>
           <div class="field">
             <label>ENGENHEIRO RESPONSÁVEL</label>
-            <select id="fvs-engenheiro" required>
-              <option value="">Selecione o engenheiro...</option>
-            </select>
+            <input type="text" id="fvs-engenheiro" placeholder="Nome do engenheiro responsável">
           </div>
           <div class="field">
             <label>LOCAIS A INSPECIONAR</label>
@@ -1544,16 +1542,6 @@ async function carregarDadosModalNovaFVS() {
         `<option value="${template.id}">${template.servico} - ${template.revisao_atual || 'Rev. 00'}</option>`
       ).join('');
 
-    // Carregar engenheiros
-    const usuarios = await client.getUsuarios();
-    const engSelect = document.getElementById('fvs-engenheiro');
-    const engenheiros = usuarios.filter(u => u.ativo && ['engenheiro','admin','diretor'].includes(u.perfil));
-    engSelect.innerHTML = '<option value="">Selecione o engenheiro...</option>' +
-      engenheiros.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
-    // Pré-selecionar se o usuário logado for engenheiro/admin/diretor
-    if (engenheiros.find(u => u.id === usuarioAtual?.id)) {
-      engSelect.value = usuarioAtual.id;
-    }
       
   } catch (error) {
     console.error('Erro ao carregar dados do modal:', error);
@@ -1657,11 +1645,7 @@ async function criarNovaFVS() {
     const codigo = `FVS-${ano}-${String(sequencial).padStart(3, '0')}`;
     
     // Criar nova FVS
-    const engenheiroId = document.getElementById('fvs-engenheiro')?.value || null;
-    if (!engenheiroId) {
-      toast('Selecione o engenheiro responsável', 'error');
-      return;
-    }
+    const engenheiroNome = document.getElementById('fvs-engenheiro')?.value?.trim() || null;
 
     const novaFVS = {
       id: 'f' + Date.now(),
@@ -1672,7 +1656,7 @@ async function criarNovaFVS() {
       criterios: template.criterios || [],
       locais: locaisArray,
       inspetor_id: usuarioAtual.id,
-      engenheiro_id: engenheiroId,
+      engenheiro_id: engenheiroNome,
       status: 'andamento',
       abertura: new Date().toISOString()
     };
@@ -1735,7 +1719,6 @@ async function abrirFVS(fvsId) {
     
     const usuarios = await client.getUsuarios();
     const inspetor = usuarios.find(u => u.id === fvs.inspetor_id);
-    const engenheiro = usuarios.find(u => u.id === fvs.engenheiro_id);
     
     // Obter template para acessar norma
     const templates = await client.getTemplatesFVS();
@@ -1770,7 +1753,7 @@ async function abrirFVS(fvsId) {
                 <strong>FVS aberta por:</strong> ${inspetor?.nome || '—'}
               </div>
               <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">
-                <strong>Engenheiro responsável:</strong> ${engenheiro?.nome || '—'}
+                <strong>Engenheiro responsável:</strong> ${fvs.engenheiro_id || '—'}
               </div>
               <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">
                 <strong>Abertura:</strong> ${fvs.abertura ? new Date(fvs.abertura).toLocaleDateString('pt-BR') : '—'}
