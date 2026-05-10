@@ -1772,12 +1772,12 @@ async function abrirFVS(fvsId) {
                 Encerrada: ${new Date(fvs.fechamento).toLocaleDateString('pt-BR')}
               </span>
             ` : ''}
-            <button onclick="editarEngenheiroFVS('${fvs.id}')" title="Alterar engenheiro responsável"
+            ${['admin','engenheiro'].includes(usuarioAtual?.perfil) ? `<button onclick="editarEngenheiroFVS('${fvs.id}')" title="Alterar engenheiro responsável"
               style="margin-top:4px;background:none;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 4px;border-radius:4px;transition:color .15s"
               onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
               Eng. responsável
-            </button>
+            </button>` : ''}
           </div>
         </div>
       </div>
@@ -2793,6 +2793,10 @@ async function encerrarFVS(fvsId) {
 }
 
 async function editarEngenheiroFVS(fvsId) {
+  if (!['admin','engenheiro'].includes(usuarioAtual?.perfil)) {
+    toast('Sem permissão para alterar o engenheiro responsável.', 'error');
+    return;
+  }
   const atual = window.fvsAtual?.engenheiro_id || '';
   const novo = prompt('Engenheiro responsável:', atual);
   if (novo === null) return; // cancelou
