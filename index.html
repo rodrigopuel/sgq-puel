@@ -913,7 +913,7 @@ async function renderDashboard(m){
         <div class="kpi-card k-amber"><div class="kpi-label">FVS em andamento</div><div class="kpi-value" style="color:var(--amber)">${fvsFiltradas.filter(f=>f.status==='andamento').length}</div><div class="kpi-sub">${fvsFiltradas.filter(f=>f.status==='encerrada').length} encerradas</div></div>
         <div class="kpi-card k-red"><div class="kpi-label">NC abertas</div><div class="kpi-value" style="color:var(--red)">${totalNC}</div><div class="kpi-sub">pendentes de correção</div></div>
         <div class="kpi-card k-accent"><div class="kpi-label">FVM em andamento</div><div class="kpi-value" style="color:var(--accent)">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='andamento').length}</div><div class="kpi-sub">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='encerrada').length} encerradas</div></div>
-        <div class="kpi-card k-green"><div class="kpi-label">Aplicações IS</div><div class="kpi-value" style="color:var(--green)">${aplEscopo.length}</div><div class="kpi-sub">${fvsComIS.length} de ${fvsFiltradas.length} FVS com IS</div></div>
+        <div class="kpi-card k-green"><div class="kpi-label">Aplicações IS</div><div class="kpi-value" style="color:var(--green)">${aplEscopo.length}</div><div class="kpi-sub">${fvsFiltradas.filter(f=>!aplPorFvs[f.id]).length} FVS sem aplicação</div></div>
       </div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">${obraSelecionada?'Desempenho da obra selecionada':'Desempenho por obra'}</div>
       ${obrasEscopo.map(o=>{
