@@ -1772,6 +1772,12 @@ async function abrirFVS(fvsId) {
                 Encerrada: ${new Date(fvs.fechamento).toLocaleDateString('pt-BR')}
               </span>
             ` : ''}
+            <button onclick="editarEngenheiroFVS('${fvs.id}')" title="Alterar engenheiro responsável"
+              style="margin-top:4px;background:none;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 4px;border-radius:4px;transition:color .15s"
+              onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
+              Eng. responsável
+            </button>
           </div>
         </div>
       </div>
@@ -2783,6 +2789,27 @@ async function encerrarFVS(fvsId) {
   } catch (error) {
     console.error('Erro ao encerrar FVS:', error);
     toast('Erro ao encerrar FVS', 'error');
+  }
+}
+
+async function editarEngenheiroFVS(fvsId) {
+  const atual = window.fvsAtual?.engenheiro_id || '';
+  const novo = prompt('Engenheiro responsável:', atual);
+  if (novo === null) return; // cancelou
+  try {
+    const client = await esperarSupabase();
+    await client.update('fvs', fvsId, { engenheiro_id: novo.trim() });
+    window.fvsAtual.engenheiro_id = novo.trim();
+    // Atualizar texto na ficha sem recarregar
+    document.querySelectorAll('#main-content strong').forEach(el => {
+      if (el.textContent === 'Engenheiro responsável:') {
+        el.parentElement.innerHTML = `<strong>Engenheiro responsável:</strong> ${novo.trim() || '—'}`;
+      }
+    });
+    toast('Engenheiro atualizado', 'success');
+  } catch (error) {
+    console.error('Erro ao atualizar engenheiro:', error);
+    toast('Erro ao atualizar engenheiro', 'error');
   }
 }
 
