@@ -1287,6 +1287,7 @@ async function renderFVS(m){
     // Calcular estatísticas
     const emAndamento = fvsList.filter(f => f.status === 'andamento');
     const encerradas = fvsList.filter(f => f.status === 'encerrada');
+    const aprovadas = fvsList.filter(f => f.status === 'aprovada');
     
     // Contar NC abertas
     let ncAbertas = 0;
@@ -1298,7 +1299,7 @@ async function renderFVS(m){
     
     m.innerHTML=`
       <div class="page-header">
-        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
+        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas • ${aprovadas.length} aprovadas${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
         <button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>
       </div>
       
@@ -1311,6 +1312,10 @@ async function renderFVS(m){
         <div class="kpi-card k-green">
           <div class="kpi-number">${encerradas.length}</div>
           <div class="kpi-label">ENCERRADAS</div>
+        </div>
+        <div class="kpi-card k-accent">
+          <div class="kpi-number">${aprovadas.length}</div>
+          <div class="kpi-label">APROVADAS</div>
         </div>
         <div class="kpi-card k-red">
           <div class="kpi-number">${ncAbertas}</div>
@@ -1402,6 +1407,45 @@ async function renderFVS(m){
         </div>
       ` : ''}
       
+      <!-- Seção APROVADAS -->
+      ${aprovadas.length > 0 ? `
+        <div style="margin-top:20px">
+          <div style="font-size:12px;font-family:var(--font-mono);color:#60a5fa;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">APROVADAS</div>
+          ${aprovadas.map(fvs => {
+            const obra = obras.find(o => o.id === fvs.obra_id);
+            const progresso = calcularProgressoFVS(fvs);
+            const icp = calcularICP(fvs);
+            const ncCount = fvs.ocorrencias ? fvs.ocorrencias.filter(o => o.status === 'aberta').length : 0;
+            const isVigente = isMap[fvs.template_id];
+            return `
+              <div class="fvs-card" onclick="abrirFVS('${fvs.id}')">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">${fvs.cod}</div>
+                    <div style="font-family:var(--font-cond);font-size:15px;font-weight:600">${fvs.servico}</div>
+                    <div style="font-size:11px;color:var(--text3);margin-top:2px">${obra?.nome||'—'}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <span class="tag tag-aprov">APROVADA</span>
+                      ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
+                      ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
+                    </div>
+                    ${isVigente ? `<span class="tag" style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();isVerArquivo('${isVigente.arquivo_url}','${isVigente.arquivo_tipo}')" title="Ver Instrução de Serviço (${isVigente.versao})">📄 IS ${isVigente.versao}</span>` : ''}
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
+                    <div style="height:100%;width:${progresso.percentual}%;background:var(--green);border-radius:3px"></div>
+                  </div>
+                  <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${progresso.percentual}% · ICP ${icp}%</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      ` : ''}
+
       ${fvsList.length === 0 ? `
         <div class="empty">
           <div class="empty-title">Nenhuma FVS cadastrada</div>
@@ -2806,20 +2850,23 @@ async function aprovarFVS(fvsId) {
     toast('Somente o perfil admin pode aprovar FVS.', 'error');
     return;
   }
-  if (window.fvsAtual?.status !== 'encerrada') {
+  const status = window.fvsAtual?.status;
+  if (!['encerrada','aprovada'].includes(status)) {
     toast('Somente FVS encerradas podem ser aprovadas.', 'error');
     return;
   }
-  if (!confirm('Deseja aprovar esta FVS?')) return;
+  const novoStatus = status === 'encerrada' ? 'aprovada' : 'encerrada';
+  const msg = novoStatus === 'aprovada' ? 'Deseja aprovar esta FVS?' : 'Deseja reverter esta FVS para encerrada?';
+  if (!confirm(msg)) return;
   try {
     const client = await esperarSupabase();
-    await client.update('fvs', fvsId, { status: 'aprovada' });
-    window.fvsAtual.status = 'aprovada';
-    toast('FVS aprovada com sucesso!', 'success');
+    await client.update('fvs', fvsId, { status: novoStatus });
+    window.fvsAtual.status = novoStatus;
+    toast(novoStatus === 'aprovada' ? 'FVS aprovada com sucesso!' : 'FVS revertida para encerrada.', 'success');
     abrirFVS(fvsId);
   } catch (error) {
     console.error('Erro ao aprovar FVS:', error);
-    toast('Erro ao aprovar FVS', 'error');
+    toast('Erro ao atualizar status da FVS', 'error');
   }
 }
 
