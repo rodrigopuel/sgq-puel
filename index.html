@@ -886,6 +886,22 @@ async function renderDashboard(m){
 
     const templates = await client.getTemplatesFVS();
 
+    // Dados IS
+    const [isRegistros, aplicacoesIS] = await Promise.all([
+      client.get('fvs_is', {}),
+      client.get('aplicacoes_is', {})
+    ]);
+    const isMap = {};
+    isRegistros.forEach(r => {
+      if (!isMap[r.fvs_id] || r.data_upload > (isMap[r.fvs_id]?.data_upload || '')) isMap[r.fvs_id] = r;
+    });
+    const fvsIdsEscopo = new Set(fvsFiltradas.map(f => f.id));
+    const aplEscopo = aplicacoesIS.filter(a => fvsIdsEscopo.has(a.fvs_id));
+    const fvsComIS  = fvsFiltradas.filter(f => isMap[f.template_id]);
+    const fvsSemIS  = fvsFiltradas.filter(f => !isMap[f.template_id]);
+    const aplPorFvs = {};
+    aplEscopo.forEach(a => { if (!aplPorFvs[a.fvs_id]) aplPorFvs[a.fvs_id] = 0; aplPorFvs[a.fvs_id]++; });
+
     m.innerHTML=`
       <div class="page-header"><div>
         <div class="page-title">Dashboard SGQ</div>
@@ -897,6 +913,7 @@ async function renderDashboard(m){
         <div class="kpi-card k-amber"><div class="kpi-label">FVS em andamento</div><div class="kpi-value" style="color:var(--amber)">${fvsFiltradas.filter(f=>f.status==='andamento').length}</div><div class="kpi-sub">${fvsFiltradas.filter(f=>f.status==='encerrada').length} encerradas</div></div>
         <div class="kpi-card k-red"><div class="kpi-label">NC abertas</div><div class="kpi-value" style="color:var(--red)">${totalNC}</div><div class="kpi-sub">pendentes de correção</div></div>
         <div class="kpi-card k-accent"><div class="kpi-label">FVM em andamento</div><div class="kpi-value" style="color:var(--accent)">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='andamento').length}</div><div class="kpi-sub">${fvmList.filter(f=>obrasIds.has(f.obra_id)&&f.status==='encerrada').length} encerradas</div></div>
+        <div class="kpi-card k-green"><div class="kpi-label">Aplicações IS</div><div class="kpi-value" style="color:var(--green)">${aplEscopo.length}</div><div class="kpi-sub">${fvsComIS.length} de ${fvsFiltradas.length} FVS com IS</div></div>
       </div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">${obraSelecionada?'Desempenho da obra selecionada':'Desempenho por obra'}</div>
       ${obrasEscopo.map(o=>{
@@ -932,7 +949,39 @@ async function renderDashboard(m){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de serviço</div>${gerarDonutNCTipoServico(fvsFiltradas, templates)}</div>
         <div class="chart-wrap"><div class="chart-title">NC por Tipo de problema</div>${gerarDonutNCTipoProblema(fvsFiltradas)}</div>
-      </div>`;
+      </div>
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px">Instrução de Serviço (IS)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+        <div class="kpi-card" style="padding:14px"><div class="kpi-label">FVS com IS vigente</div><div class="kpi-value" style="color:var(--green);font-size:28px">${fvsComIS.length}</div><div class="kpi-sub">de ${fvsFiltradas.length} FVS</div></div>
+        <div class="kpi-card" style="padding:14px"><div class="kpi-label">FVS sem IS</div><div class="kpi-value" style="color:${fvsSemIS.length>0?'var(--red)':'var(--green)'};font-size:28px">${fvsSemIS.length}</div><div class="kpi-sub">aguardando IS</div></div>
+        <div class="kpi-card" style="padding:14px"><div class="kpi-label">Total de aplicações</div><div class="kpi-value" style="color:var(--accent);font-size:28px">${aplEscopo.length}</div><div class="kpi-sub">registros IS aplicadas</div></div>
+      </div>
+      ${fvsFiltradas.length ? `
+      <div class="table-wrap"><div class="table-scroll"><table>
+        <thead><tr>
+          <th>FVS</th><th>IS Vigente</th><th>Aplicações</th><th>Cobertura</th>
+        </tr></thead>
+        <tbody>
+          ${fvsFiltradas.map(fvs => {
+            const is  = isMap[fvs.template_id];
+            const cnt = aplPorFvs[fvs.id] || 0;
+            return `<tr>
+              <td><div style="font-weight:500;font-size:12px">${fvs.servico}</div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${fvs.cod}</div></td>
+              <td>${is ? `<span class="tag tag-ok" style="font-size:10px">${is.versao}</span>` : `<span style="font-size:11px;color:var(--text3)">Sem IS</span>`}</td>
+              <td><span style="font-size:13px;font-weight:600;color:${cnt>0?'var(--text)':'var(--text3)'}">${cnt}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;min-width:60px">
+                    <div style="height:100%;width:${is?(cnt>0?'100':'30'):'0'}%;background:${cnt>0?'var(--green)':is?'var(--amber)':'var(--border2)'};border-radius:2px"></div>
+                  </div>
+                  <span style="font-size:10px;color:var(--text3);white-space:nowrap">${!is?'Sem IS':cnt>0?'Aplicada':'IS sem aplicação'}</span>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div></div>` : ''}
+      `;
   } catch (error) {
     console.error('Erro no dashboard:', error);
     m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar dashboard</div></div>';
