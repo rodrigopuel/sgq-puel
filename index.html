@@ -157,6 +157,7 @@ tr:hover td{background:var(--bg3);color:var(--text)}
 .tag-ativa{background:#14532d;color:#4ade80;border:1px solid #166534}
 .tag-enc{background:#1c1c1c;color:var(--text3);border:1px solid var(--border)}
 .tag-and{background:#451a03;color:#fb923c;border:1px solid #7c2d12}
+.tag-pre{background:#1e1b4b;color:#a5b4fc;border:1px solid #3730a3}
 .tag-ok{background:#14532d;color:#4ade80;border:1px solid #166534}
 .tag-nc{background:#7f1d1d;color:#f87171;border:1px solid #991b1b}
 .tag-rev{background:#1a2035;color:#60a5fa;border:1px solid #1e3a6e}
@@ -885,7 +886,7 @@ async function renderDashboard(m){
     const fvsList = await client.getFVS();
     // Carregar ocorrências separadamente e associar às FVS
     const todasOcorrencias = await client.getOcorrencias();
-    const fvsFiltradas = fvsList.filter(f => obrasIds.has(f.obra_id));
+    let fvsFiltradas = fvsList.filter(f => obrasIds.has(f.obra_id));
     fvsFiltradas.forEach(f => {
       f.ocorrencias = todasOcorrencias.filter(o => o.fvs_id === f.id);
       // compatibilidade com funções de stats
@@ -897,6 +898,8 @@ async function renderDashboard(m){
     const fvmList = await client.getFVM();
 
     const totalNC = fvsFiltradas.reduce((s,f) => s + (f.ocorrencias||[]).filter(o=>o.status==='aberta').length, 0);
+    // Excluir pré-executivas das métricas do dashboard
+    fvsFiltradas = fvsFiltradas.filter(f => f.status !== 'pre-executivo');
     let totC=0, totAll=0, totRC=0, totNC=0;
     fvsFiltradas.forEach(f => { const s=calcStats(f); totC+=s.C; totAll+=s.total; totRC+=s.RC; totNC+=s.NC; });
     const icpGeral = totAll>0 ? Math.round(totC/totAll*100) : 0;
@@ -1322,9 +1325,10 @@ async function renderFVS(m){
     });
     
     // Calcular estatísticas
-    const emAndamento = fvsList.filter(f => f.status === 'andamento');
-    const encerradas = fvsList.filter(f => f.status === 'encerrada');
-    const aprovadas = fvsList.filter(f => f.status === 'aprovada');
+    const emAndamento   = fvsList.filter(f => f.status === 'andamento');
+    const encerradas    = fvsList.filter(f => f.status === 'encerrada');
+    const aprovadas     = fvsList.filter(f => f.status === 'aprovada');
+    const preExecutivas = fvsList.filter(f => f.status === 'pre-executivo');
     
     // Contar NC abertas
     let ncAbertas = 0;
@@ -1336,7 +1340,7 @@ async function renderFVS(m){
     
     m.innerHTML=`
       <div class="page-header">
-        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas • ${aprovadas.length} aprovadas${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
+        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas • ${aprovadas.length} aprovadas${usuarioAtual?.perfil==='admin'&&preExecutivas.length?` • ${preExecutivas.length} pré-executivas`:''}${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
         <button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>
       </div>
       
@@ -1483,7 +1487,32 @@ async function renderFVS(m){
         </div>
       ` : ''}
 
-      ${fvsList.length === 0 ? `
+      <!-- Seção PRÉ-EXECUTIVAS (admin only) -->
+      ${usuarioAtual?.perfil === 'admin' && preExecutivas.length > 0 ? `
+        <div style="margin-top:20px">
+          <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">PRÉ-EXECUTIVAS</div>
+          ${preExecutivas.map(fvs => {
+            const obra = obras.find(o => o.id === fvs.obra_id);
+            return `
+              <div class="fvs-card" onclick="abrirFVS('${fvs.id}')">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">${fvs.cod}</div>
+                    <div style="font-family:var(--font-cond);font-size:15px;font-weight:600">${fvs.servico}</div>
+                    <div style="font-size:11px;color:var(--text3);margin-top:2px">${obra?.nome||'—'}</div>
+                  </div>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <span class="tag tag-pre">PRÉ-EXECUTIVA</span>
+                    ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      ` : ''}
+
+      ${fvsList.filter(f => f.status !== 'pre-executivo' || usuarioAtual?.perfil === 'admin').length === 0 ? `
         <div class="empty">
           <div class="empty-title">Nenhuma FVS cadastrada</div>
           <div class="empty-desc">Clique em "+ Nova FVS" para criar sua primeira ficha</div>
@@ -1807,10 +1836,10 @@ async function criarNovaFVS() {
       locais: locaisArray,
       inspetor_id: usuarioAtual.id,
       engenheiro_id: engenheiroNome,
-      status: 'andamento',
+      status: 'pre-executivo',
       abertura: new Date().toISOString()
     };
-    
+
     await client.insert('fvs', novaFVS);
     
     toast('FVS criada com sucesso!', 'success');
@@ -1914,8 +1943,11 @@ async function abrirFVS(fvsId) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:16px">
-            <span class="tag ${fvs.status === 'andamento' ? 'tag-and' : fvs.status === 'aprovada' ? 'tag-aprov' : 'tag-ok'}" style="font-size:11px;padding:4px 8px">
-              ${fvs.status === 'andamento' ? 'EM ANDAMENTO' : fvs.status === 'aprovada' ? 'APROVADA' : 'ENCERRADA'}
+            <span class="tag ${fvs.status==='andamento'?'tag-and':fvs.status==='aprovada'?'tag-aprov':fvs.status==='pre-executivo'?'tag-pre':'tag-ok'}"
+              style="font-size:11px;padding:4px 8px;cursor:${['pre-executivo','andamento'].includes(fvs.status)?'pointer':'default'}"
+              onclick="clicarBadgeStatusFVS('${fvs.id}')"
+              title="${fvs.status==='pre-executivo'?'Clique para disponibilizar para a obra':fvs.status==='andamento'&&usuarioAtual?.perfil==='admin'?'Clique para voltar a pré-executivo':''}">
+              ${fvs.status==='andamento'?'EM ANDAMENTO':fvs.status==='aprovada'?'APROVADA':fvs.status==='pre-executivo'?'PRÉ-EXECUTIVA':'ENCERRADA'}
             </span>
             ${fvs.fechamento ? `
               <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">
@@ -2053,6 +2085,8 @@ async function abrirFVS(fvsId) {
       <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
         ${fvs.status === 'andamento' ? `
           <button class="btn btn-success" onclick="encerrarFVS('${fvs.id}')">Encerrar FVS</button>
+        ` : fvs.status === 'pre-executivo' ? `
+          <button class="btn btn-primary" onclick="clicarBadgeStatusFVS('${fvs.id}')">Disponibilizar para obra</button>
         ` : ''}
         <button class="btn btn-secondary" onclick="gerarPDF_FVS('${fvs.id}')">Gerar PDF</button>
       </div>
@@ -2119,7 +2153,7 @@ function renderOcorrenciasFVS(ocorrencias) {
       ${(oc.rc_foto?.nc?.data || oc.rc_foto?.data) ? `<div style="margin-top:8px"><a href="#" onclick="verFotoNC(event,'${oc.id}')" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Ver foto da não conformidade</a></div>` : ''}
       ${oc.rc_foto?.correcao?.data ? `<div style="margin-top:4px"><a href="#" onclick="verFotoCorrecao(event,'${oc.id}')" style="font-size:11px;color:var(--green);text-decoration:none">📷 Ver foto da correção</a></div>` : ''}
       ${rc && oc.tipo_rc ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">Conforme após: <strong style="color:var(--text2)">${oc.tipo_rc === 'correcao' ? 'Correção' : 'Concessão'}</strong></div>` : ''}
-      ${!['encerrada','aprovada'].includes(window.fvsAtual?.status) && !rc ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" onclick="abrirModalRC('${oc.fvs_id}','${oc.id}')">✓ Marcar como corrigida (RC)</button></div>` : ''}
+      ${!['encerrada','aprovada','pre-executivo'].includes(window.fvsAtual?.status) && !rc ? `<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" onclick="abrirModalRC('${oc.fvs_id}','${oc.id}')">✓ Marcar como corrigida (RC)</button></div>` : ''}
     </div>`;
   };
 
@@ -2981,6 +3015,47 @@ async function encerrarFVS(fvsId) {
   }
 }
 
+async function clicarBadgeStatusFVS(fvsId) {
+  const status = window.fvsAtual?.status;
+
+  // pré-executivo → andamento (qualquer usuário)
+  if (status === 'pre-executivo') {
+    if (!confirm('Disponibilizar FVS para a obra?\n\nO status será alterado para "Em andamento" e a ficha ficará disponível para preenchimento.')) return;
+    try {
+      const client = await esperarSupabase();
+      await client.update('fvs', fvsId, { status: 'andamento' });
+      window.fvsAtual.status = 'andamento';
+      toast('FVS disponibilizada para a obra!', 'success');
+      abrirFVS(fvsId);
+    } catch(e) {
+      toast('Erro ao atualizar status: ' + e.message, 'error');
+    }
+    return;
+  }
+
+  // andamento → pré-executivo (admin only, sem preenchimento)
+  if (status === 'andamento') {
+    if (usuarioAtual?.perfil !== 'admin') return;
+    const totalCelulas = (window.fvsAtual?.criterios||[]).length * (window.fvsAtual?.locais||[]).length;
+    const preenchidas  = Object.keys(window.fvsAtual?.resultados || {}).length;
+    if (preenchidas > 0) {
+      toast('Não é possível voltar para pré-executivo: a FVS já possui células preenchidas.', 'error');
+      return;
+    }
+    if (!confirm('Reverter esta FVS para "Pré-executiva"?\n\nEla ficará oculta para os demais usuários.')) return;
+    try {
+      const client = await esperarSupabase();
+      await client.update('fvs', fvsId, { status: 'pre-executivo' });
+      window.fvsAtual.status = 'pre-executivo';
+      toast('FVS revertida para pré-executiva.', 'success');
+      abrirFVS(fvsId);
+    } catch(e) {
+      toast('Erro ao atualizar status: ' + e.message, 'error');
+    }
+    return;
+  }
+}
+
 async function aprovarFVS(fvsId) {
   if (usuarioAtual?.perfil !== 'admin') {
     toast('Somente o perfil admin pode aprovar FVS.', 'error');
@@ -3011,8 +3086,8 @@ async function editarEngenheiroFVS(fvsId) {
     toast('Sem permissão para alterar o engenheiro responsável.', 'error');
     return;
   }
-  if (['encerrada','aprovada'].includes(window.fvsAtual?.status)) {
-    toast('Esta FVS está encerrada/aprovada e não pode ser editada.', 'error');
+  if (['encerrada','aprovada','pre-executivo'].includes(window.fvsAtual?.status)) {
+    toast('Esta FVS está encerrada/aprovada/pré-executiva e não pode ser editada.', 'error');
     return;
   }
   const atual = window.fvsAtual?.engenheiro_id || '';
@@ -7858,8 +7933,8 @@ let resultadoSelecionado = null;
 
 // Funções do modal de preenchimento
 function abrirModalPreenchimento(fvsId, criterioIndex, local, elemento) {
-  if (['encerrada','aprovada'].includes(window.fvsAtual?.status)) {
-    toast('Esta FVS está encerrada/aprovada e não pode ser editada.', 'error');
+  if (['encerrada','aprovada','pre-executivo'].includes(window.fvsAtual?.status)) {
+    toast('Esta FVS está encerrada/aprovada/pré-executiva e não pode ser editada.', 'error');
     return;
   }
 
