@@ -1295,6 +1295,39 @@ async function encerrarObra(obraId) {
   }
 }
 
+function filtrarFVS(status) {
+  const secoes = ['andamento','encerrada','aprovada','pre-executivo'];
+  const kpis   = ['andamento','encerrada','aprovada','pre'];
+
+  // Reseta estilo de todos os kpis
+  kpis.forEach(k => {
+    const el = document.getElementById(`fvs-kpi-${k}`);
+    if (el) el.style.outline = '';
+  });
+  document.getElementById('fvs-kpi-total').style.outline = '';
+
+  if (status === null) {
+    // Mostrar tudo
+    secoes.forEach(s => {
+      const el = document.getElementById(`fvs-secao-${s}`);
+      if (el) el.style.display = '';
+    });
+    document.getElementById('fvs-kpi-total').style.outline = '2px solid var(--accent)';
+    return;
+  }
+
+  // Ocultar todas as seções, mostrar só a filtrada
+  secoes.forEach(s => {
+    const el = document.getElementById(`fvs-secao-${s}`);
+    if (el) el.style.display = s === status ? '' : 'none';
+  });
+
+  // Destacar KPI ativo
+  const kpiId = status === 'pre-executivo' ? 'fvs-kpi-pre' : `fvs-kpi-${status}`;
+  const kpiEl = document.getElementById(kpiId);
+  if (kpiEl) kpiEl.style.outline = '2px solid var(--accent)';
+}
+
 async function renderFVS(m){
   try {
     const client = await esperarSupabase();
@@ -1344,17 +1377,17 @@ async function renderFVS(m){
         <button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>
       </div>
       
-      <!-- Cards de Resumo -->
+      <!-- Cards de Resumo / Filtros -->
       <div class="kpi-grid">
-        <div class="kpi-card k-amber">
+        <div class="kpi-card k-amber" id="fvs-kpi-andamento" onclick="filtrarFVS('andamento')" style="cursor:pointer" title="Filtrar por Em andamento">
           <div class="kpi-number">${emAndamento.length}</div>
           <div class="kpi-label">EM ANDAMENTO</div>
         </div>
-        <div class="kpi-card k-green">
+        <div class="kpi-card k-green" id="fvs-kpi-encerrada" onclick="filtrarFVS('encerrada')" style="cursor:pointer" title="Filtrar por Encerradas">
           <div class="kpi-number">${encerradas.length}</div>
           <div class="kpi-label">ENCERRADAS</div>
         </div>
-        <div class="kpi-card k-accent">
+        <div class="kpi-card k-accent" id="fvs-kpi-aprovada" onclick="filtrarFVS('aprovada')" style="cursor:pointer" title="Filtrar por Aprovadas">
           <div class="kpi-number">${aprovadas.length}</div>
           <div class="kpi-label">APROVADAS</div>
         </div>
@@ -1362,15 +1395,19 @@ async function renderFVS(m){
           <div class="kpi-number">${ncAbertas}</div>
           <div class="kpi-label">NC ABERTAS</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" id="fvs-kpi-total" onclick="filtrarFVS(null)" style="cursor:pointer" title="Ver todas">
           <div class="kpi-number">${fvsList.length}</div>
           <div class="kpi-label">TOTAL</div>
+        </div>
+        <div class="kpi-card" id="fvs-kpi-pre" onclick="filtrarFVS('pre-executivo')" style="cursor:pointer;border-top:2px solid #3730a3" title="Filtrar por Pré-executivas">
+          <div class="kpi-number" style="color:#a5b4fc">${preExecutivas.length}</div>
+          <div class="kpi-label">PRÉ-EXECUTIVAS</div>
         </div>
       </div>
       
       <!-- Seção EM ANDAMENTO -->
       ${emAndamento.length > 0 ? `
-        <div style="margin-top:20px">
+        <div id="fvs-secao-andamento" style="margin-top:20px">
           <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">EM ANDAMENTO</div>
           ${emAndamento.map(fvs => {
             const obra = obras.find(o => o.id === fvs.obra_id);
@@ -1410,7 +1447,7 @@ async function renderFVS(m){
       
       <!-- Seção ENCERRADAS -->
       ${encerradas.length > 0 ? `
-        <div style="margin-top:20px">
+        <div id="fvs-secao-encerrada" style="margin-top:20px">
           <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">ENCERRADAS</div>
           ${encerradas.map(fvs => {
             const obra = obras.find(o => o.id === fvs.obra_id);
@@ -1450,7 +1487,7 @@ async function renderFVS(m){
       
       <!-- Seção APROVADAS -->
       ${aprovadas.length > 0 ? `
-        <div style="margin-top:20px">
+        <div id="fvs-secao-aprovada" style="margin-top:20px">
           <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">APROVADAS</div>
           ${aprovadas.map(fvs => {
             const obra = obras.find(o => o.id === fvs.obra_id);
@@ -1489,7 +1526,7 @@ async function renderFVS(m){
 
       <!-- Seção PRÉ-EXECUTIVAS (admin only) -->
       ${usuarioAtual?.perfil === 'admin' && preExecutivas.length > 0 ? `
-        <div style="margin-top:20px">
+        <div id="fvs-secao-pre-executivo" style="margin-top:20px">
           <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">PRÉ-EXECUTIVAS</div>
           ${preExecutivas.map(fvs => {
             const obra = obras.find(o => o.id === fvs.obra_id);
