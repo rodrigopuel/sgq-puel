@@ -7074,6 +7074,20 @@ async function localSalvarInline(containerId, torre, tipo, pavimento, setor) {
   if (!valor) { inp?.focus(); return; }
   try {
     const client = await esperarSupabase();
+
+    // Verificar duplicata no mesmo caminho
+    const existentes = await client.getLocais(obraSelecionadaId);
+    const duplicado = existentes.some(l => {
+      if (l.torre !== torre || l.tipo !== tipo) return false;
+      if (tipo === 'externo') return l.fachada === valor;
+      return l.pavimento === pavimento && l.setor === setor && l.unidade === valor;
+    });
+    if (duplicado) {
+      toast(`"${valor}" já existe neste caminho`, 'error');
+      inp?.select();
+      return;
+    }
+
     const row = {
       obra_id:   obraSelecionadaId,
       torre:     torre,
@@ -7380,6 +7394,21 @@ async function localSalvar() {
   if (!f.ultimos.length) return;
   try {
     const client = await esperarSupabase();
+
+    // Verificar duplicatas no banco para o mesmo caminho
+    const existentes = await client.getLocais(obraSelecionadaId);
+    const duplicados = f.ultimos.filter(ultimo =>
+      existentes.some(l => {
+        if (l.torre !== f.torre || l.tipo !== f.tipo) return false;
+        if (f.tipo === 'externo') return l.fachada === ultimo;
+        return l.pavimento === f.pavimento && l.setor === f.setor && l.unidade === ultimo;
+      })
+    );
+    if (duplicados.length) {
+      toast(`Já existe(m) neste caminho: ${duplicados.join(', ')}`, 'error');
+      return;
+    }
+
     for (const ultimo of f.ultimos) {
       const row = {
         obra_id:   obraSelecionadaId,
