@@ -3222,9 +3222,9 @@ async function excluirFVS(fvsId, fvsCod, event) {
       return;
     }
     
-    // Verificar se status é "em andamento"
-    if (fvs.status !== 'andamento') {
-      toast('FVS só pode ser excluída por usuário admin e com status: em andamento', 'error');
+    // Verificar se status permite exclusão
+    if (!['andamento', 'pre-executivo'].includes(fvs.status)) {
+      toast('FVS só pode ser excluída com status Em Andamento ou Pré-Executiva', 'error');
       return;
     }
     
