@@ -6314,21 +6314,26 @@ async function renderRelatorioNC(m) {
       const obra = obraMap[fvs.obra_id] || {};
       const resp = userMap[oc.responsavel_id] || {};
       const prazoDate = oc.prazo ? new Date(oc.prazo + 'T12:00') : null;
+      // servico: usa o campo da FVS; fallback para criterio_item se vier vazio
+      const fvsServico = fvs.servico || '';
       return {
         ...oc,
-        fvsCod:    fvs.cod      || '—',
-        fvsServico:fvs.servico  || '—',
-        obraNome:  obra.nome    || '—',
-        respNome:  resp.nome    || oc.responsavel_id || '—',
+        fvsCod:     fvs.cod      || '—',
+        fvsServico: fvsServico,
+        obraNome:   obra.nome    || '—',
+        respNome:   resp.nome    || oc.responsavel_id || '—',
         prazoDate,
         atrasada: prazoDate && prazoDate < new Date() && oc.status !== 'encerrada'
       };
     });
 
     // Opções para dropdowns
-    const fvsCods    = [...new Set(_relNcDados.map(r => r.fvsCod).filter(Boolean))].sort();
-    const servicos   = [...new Set(_relNcDados.map(r => r.fvsServico).filter(x => x && x !== '—'))].sort();
-    const locaisOpc  = [...new Set(_relNcDados.map(r => r.local).filter(Boolean))].sort();
+    const fvsCods  = [...new Set(_relNcDados.map(r => r.fvsCod).filter(Boolean))].sort();
+    // Serviços: usa lista completa de FVS para não perder serviços com NCs em FVS cujo campo servico está preenchido
+    const servicos = [...new Set(
+      [..._relNcDados.map(r => r.fvsServico), ...fvsList.map(f => f.servico)]
+        .filter(x => x && x !== '—')
+    )].sort();
 
     m.innerHTML = `
       <div class="page-header">
@@ -6357,11 +6362,11 @@ async function renderRelatorioNC(m) {
 
           <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
             <label style="font-size:10px;color:var(--text3)">Serviço</label>
-            <select id="rnc-servico" onchange="_relNcFiltrar()"
+            <input id="rnc-servico" oninput="_relNcFiltrar()" list="rnc-servico-list" placeholder="Buscar serviço…"
               style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:5px 8px">
-              <option value="">Todos</option>
-              ${servicos.map(s => `<option value="${s}">${s}</option>`).join('')}
-            </select>
+            <datalist id="rnc-servico-list">
+              ${servicos.map(s => `<option value="${s}">`).join('')}
+            </datalist>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
@@ -6432,7 +6437,7 @@ function _relNcFiltrar() {
 
   const resultado = _relNcDados.filter(r => {
     if (fvsFiltro     && !r.fvsCod.toLowerCase().includes(fvsFiltro))         return false;
-    if (servicoFiltro && !r.fvsServico.toLowerCase().includes(servicoFiltro)) return false;
+    if (servicoFiltro && !r.fvsServico.toLowerCase().includes(servicoFiltro) && !r.fvsCod.toLowerCase().includes(servicoFiltro)) return false;
     if (localFiltro   && !(r.local || '').toLowerCase().includes(localFiltro)) return false;
     if (statusFiltro === 'aberta'    && (r.status !== 'aberta' || r.atrasada)) return false;
     if (statusFiltro === 'atrasada'  && !r.atrasada)                           return false;
@@ -6507,10 +6512,10 @@ function _relNcFiltrar() {
 }
 
 function _relNcLimpar() {
-  const ids = ['rnc-fvs','rnc-servico','rnc-status'];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  const local = document.getElementById('rnc-local');
-  if (local) local.value = '';
+  ['rnc-fvs','rnc-servico','rnc-local','rnc-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   _relNcFiltrar();
 }
 // ──────────────────────────────────────────────────────────────────────────────
