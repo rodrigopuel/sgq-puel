@@ -6332,8 +6332,10 @@ async function renderRelatorioNC(m) {
     });
 
     // Serviços: TODOS os tipos de FVS da obra (independente de ter NCs)
-    const fvsCods  = [...new Set(fvsDaObra.map(f => f.cod).filter(Boolean))].sort();
-    const servicos = [...new Set(fvsDaObra.map(f => f.servico).filter(Boolean))].sort();
+    const fvsCods     = [...new Set(fvsDaObra.map(f => f.cod).filter(Boolean))].sort();
+    const servicos    = [...new Set(fvsDaObra.map(f => f.servico).filter(Boolean))].sort();
+    // Locais: únicos presentes nas NCs da obra
+    const locaisUnicos = [...new Set(_relNcDados.map(r => r.local).filter(Boolean))].sort();
 
     m.innerHTML = `
       <div class="page-header">
@@ -6380,10 +6382,22 @@ async function renderRelatorioNC(m) {
             </div>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;position:relative">
             <label style="font-size:10px;color:var(--text3)">Local</label>
-            <input id="rnc-local" oninput="_relNcFiltrar()" placeholder="Buscar local…"
-              style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:5px 8px">
+            <button type="button" id="rnc-local-btn" onclick="_rncLocalToggle(event)"
+              style="display:flex;justify-content:space-between;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-size:12px;padding:5px 8px;cursor:pointer;text-align:left;width:100%">
+              <span id="rnc-local-label">Todos</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4"/></svg>
+            </button>
+            <div id="rnc-local-panel" style="display:none;position:absolute;top:calc(100% + 2px);left:0;min-width:280px;z-index:300;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);max-height:300px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.4)">
+              <div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:6px;position:sticky;top:0;background:var(--bg2);z-index:1">
+                <button type="button" onclick="_rncLocalTodos(true)"  style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">Todos</button>
+                <button type="button" onclick="_rncLocalTodos(false)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">Nenhum</button>
+              </div>
+              <div style="padding:8px 10px">
+                ${_buildRncLocalPanel(locaisUnicos)}
+              </div>
+            </div>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
@@ -6441,18 +6455,21 @@ async function renderRelatorioNC(m) {
 }
 
 function _relNcFiltrar() {
-  const fvsFiltro    = (document.getElementById('rnc-fvs')?.value    || '').trim().toLowerCase();
-  const localFiltro  = (document.getElementById('rnc-local')?.value   || '').trim().toLowerCase();
-  const statusFiltro = (document.getElementById('rnc-status')?.value  || '').trim();
+  const fvsFiltro    = (document.getElementById('rnc-fvs')?.value   || '').trim().toLowerCase();
+  const statusFiltro = (document.getElementById('rnc-status')?.value || '').trim();
 
-  const chksSrv   = document.querySelectorAll('.rnc-srv-chk');
-  const selSrv    = Array.from(document.querySelectorAll('.rnc-srv-chk:checked')).map(c => c.value);
+  const chksSrv  = document.querySelectorAll('.rnc-srv-chk');
+  const selSrv   = Array.from(document.querySelectorAll('.rnc-srv-chk:checked')).map(c => c.value);
   const filtrarSrv = chksSrv.length > 0 && selSrv.length > 0 && selSrv.length < chksSrv.length;
+
+  const chksLoc  = document.querySelectorAll('.rnc-loc-chk');
+  const selLoc   = new Set(Array.from(document.querySelectorAll('.rnc-loc-chk:checked')).map(c => c.value));
+  const filtrarLoc = chksLoc.length > 0 && selLoc.size > 0 && selLoc.size < chksLoc.length;
 
   const resultado = _relNcDados.filter(r => {
     if (fvsFiltro    && !r.fvsCod.toLowerCase().includes(fvsFiltro))          return false;
     if (filtrarSrv   && !selSrv.includes(r.fvsServico))                        return false;
-    if (localFiltro  && !(r.local || '').toLowerCase().includes(localFiltro))  return false;
+    if (filtrarLoc   && !selLoc.has(r.local))                                  return false;
     if (statusFiltro === 'aberta'    && (r.status !== 'aberta' || r.atrasada)) return false;
     if (statusFiltro === 'atrasada'  && !r.atrasada)                           return false;
     if (statusFiltro === 'encerrada' && r.status !== 'encerrada')              return false;
@@ -6526,14 +6543,137 @@ function _relNcFiltrar() {
 }
 
 function _relNcLimpar() {
-  ['rnc-fvs','rnc-local','rnc-status'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  ['rnc-fvs','rnc-status'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.querySelectorAll('.rnc-srv-chk').forEach(c => { c.checked = false; });
-  const lbl = document.getElementById('rnc-servico-label');
-  if (lbl) lbl.textContent = 'Todos';
+  const lblSrv = document.getElementById('rnc-servico-label');
+  if (lblSrv) lblSrv.textContent = 'Todos';
+  document.querySelectorAll('.rnc-loc-chk').forEach(c => { c.checked = false; });
+  const lblLoc = document.getElementById('rnc-local-label');
+  if (lblLoc) lblLoc.textContent = 'Todos';
   _relNcFiltrar();
 }
+
+// ── Painel hierárquico de Locais (NC Report) ──────────────────────────────────
+function _buildRncLocalPanel(paths) {
+  if (!paths.length) return `<div style="font-size:12px;color:var(--text3);padding:4px">Nenhum local com NC</div>`;
+
+  // Agrupa por torre → tipo → pavimento/fachada → setor → unidade
+  const tree = {};
+  paths.forEach(path => {
+    const p = path.split(' / ');
+    const torre = p[0] || '—';
+    const tipo  = p[1] || '—';
+    if (!tree[torre]) tree[torre] = { interno: {}, externo: [] };
+    if (tipo === 'Interno') {
+      const pav   = p[2] || '—';
+      const setor = p[3] || '—';
+      if (!tree[torre].interno[pav]) tree[torre].interno[pav] = {};
+      if (!tree[torre].interno[pav][setor]) tree[torre].interno[pav][setor] = [];
+      tree[torre].interno[pav][setor].push(path);
+    } else {
+      tree[torre].externo.push(path);
+    }
+  });
+
+  const btnBulk = (attr, val) =>
+    `<button type="button" onclick="_rncLocGrp('${attr}','${val.replace(/'/g,"\\'")}',true)"
+      style="width:9px;height:9px;border-radius:2px;border:none;background:#166534;color:#4ade80;cursor:pointer;margin-left:5px;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</button>
+    <button type="button" onclick="_rncLocGrp('${attr}','${val.replace(/'/g,"\\'")}',false)"
+      style="width:9px;height:9px;border-radius:2px;border:none;background:#7f1d1d;color:#f87171;cursor:pointer;margin-left:2px;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>`;
+
+  const chk = (path, dataAttrs) => {
+    const attrs = Object.entries(dataAttrs).map(([k,v]) => `data-${k}="${v.replace(/"/g,'&quot;')}"`).join(' ');
+    return `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 0">
+      <input type="checkbox" class="rnc-loc-chk" value="${path.replace(/"/g,'&quot;')}" ${attrs}
+        onchange="_rncLocaisChange()" style="width:13px;height:13px;accent-color:var(--accent);flex-shrink:0">
+      <span style="font-size:11px;color:var(--text2)">${path.split(' / ').pop()}</span>
+    </label>`;
+  };
+
+  let html = '';
+  Object.entries(tree).forEach(([torre, dados]) => {
+    const gT = `rl-t-${torre}`;
+    html += `<div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">
+        🏗 ${torre} ${btnBulk('g-torre', gT)}
+      </div>`;
+
+    if (Object.keys(dados.interno).length) {
+      const gTi = `${gT}-int`;
+      html += `<div style="margin-left:12px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">
+          Interno ${btnBulk('g-ti', gTi)}
+        </div>`;
+      Object.entries(dados.interno).forEach(([pav, setores]) => {
+        const gP = `${gTi}-${pav}`;
+        html += `<div style="margin-left:12px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;font-size:11px;color:var(--text2);margin-bottom:2px;font-weight:600">
+            Pav ${pav} ${btnBulk('g-pav', gP)}
+          </div>`;
+        Object.entries(setores).forEach(([setor, items]) => {
+          const gS = `${gP}-${setor}`;
+          html += `<div style="margin-left:12px;margin-bottom:3px">
+            <div style="display:flex;align-items:center;font-size:10px;color:var(--text3);margin-bottom:1px">
+              ${setor} ${btnBulk('g-set', gS)}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0 14px;margin-left:8px">
+              ${items.map(p => chk(p, {'g-torre':gT,'g-ti':gTi,'g-pav':gP,'g-set':gS})).join('')}
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (dados.externo.length) {
+      const gTe = `${gT}-ext`;
+      html += `<div style="margin-left:12px">
+        <div style="display:flex;align-items:center;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">
+          Externo ${btnBulk('g-te', gTe)}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0 14px;margin-left:12px">
+          ${dados.externo.map(p => chk(p, {'g-torre':gT,'g-te':gTe})).join('')}
+        </div>
+      </div>`;
+    }
+
+    html += `</div>`;
+  });
+  return html;
+}
+
+function _rncLocalToggle(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('rnc-local-panel');
+  if (!panel) return;
+  const aberto = panel.style.display !== 'none';
+  panel.style.display = aberto ? 'none' : 'block';
+  if (!aberto) setTimeout(() => document.addEventListener('click', _rncLocalFechar, { once: true }), 0);
+}
+function _rncLocalFechar() {
+  const panel = document.getElementById('rnc-local-panel');
+  if (panel) panel.style.display = 'none';
+}
+function _rncLocalTodos(checked) {
+  document.querySelectorAll('.rnc-loc-chk').forEach(c => { c.checked = checked; });
+  _rncLocaisChange();
+}
+function _rncLocGrp(attr, val, checked) {
+  document.querySelectorAll(`.rnc-loc-chk[data-${attr}="${val}"]`).forEach(c => { c.checked = checked; });
+  _rncLocaisChange();
+}
+function _rncLocaisChange() {
+  const sel   = Array.from(document.querySelectorAll('.rnc-loc-chk:checked'));
+  const total = document.querySelectorAll('.rnc-loc-chk').length;
+  const lbl   = document.getElementById('rnc-local-label');
+  if (lbl) {
+    if (sel.length === 0 || sel.length === total) lbl.textContent = 'Todos';
+    else lbl.textContent = `${sel.length} local${sel.length !== 1 ? 'is' : ''} selecionado${sel.length !== 1 ? 's' : ''}`;
+  }
+  _relNcFiltrar();
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 function _rncServicoToggle(e) {
   e.stopPropagation();
