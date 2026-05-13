@@ -1391,17 +1391,17 @@ async function renderFVS(m){
           <div class="kpi-number">${aprovadas.length}</div>
           <div class="kpi-label">APROVADAS</div>
         </div>
-        <div class="kpi-card k-red">
-          <div class="kpi-number">${ncAbertas}</div>
-          <div class="kpi-label">NC ABERTAS</div>
+        <div class="kpi-card" id="fvs-kpi-pre" onclick="filtrarFVS('pre-executivo')" style="cursor:pointer;border-top:2px solid #3730a3" title="Filtrar por Pré-executivas">
+          <div class="kpi-number" style="color:#a5b4fc">${preExecutivas.length}</div>
+          <div class="kpi-label">PRÉ-EXECUTIVAS</div>
         </div>
         <div class="kpi-card" id="fvs-kpi-total" onclick="filtrarFVS(null)" style="cursor:pointer" title="Ver todas">
           <div class="kpi-number">${fvsList.length}</div>
           <div class="kpi-label">TOTAL</div>
         </div>
-        <div class="kpi-card" id="fvs-kpi-pre" onclick="filtrarFVS('pre-executivo')" style="cursor:pointer;border-top:2px solid #3730a3" title="Filtrar por Pré-executivas">
-          <div class="kpi-number" style="color:#a5b4fc">${preExecutivas.length}</div>
-          <div class="kpi-label">PRÉ-EXECUTIVAS</div>
+        <div class="kpi-card k-red">
+          <div class="kpi-number">${ncAbertas}</div>
+          <div class="kpi-label">NC ABERTAS</div>
         </div>
       </div>
       
