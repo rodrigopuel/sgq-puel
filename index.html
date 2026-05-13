@@ -3383,7 +3383,7 @@ function renderTelaLocaisFVS() {
 }
 
 function _buildLocaisFilterTree(paths) {
-  const checkedSet = new Set(window._fvsLocaisFiltro || paths);
+  const checkedSet = new Set(window._fvsLocaisFiltro || []);
 
   // Agrupa por torre → tipo → pavimento → setor
   const tree = {};
