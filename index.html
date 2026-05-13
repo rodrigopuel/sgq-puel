@@ -1986,7 +1986,15 @@ async function abrirFVS(fvsId) {
               <th class="th-item" style="width:10%;min-width:75px">Item</th>
               <th class="th-item" style="width:8%;min-width:75px">Método</th>
               <th class="th-item" style="width:8%;min-width:75px">Tolerância</th>
-              ${(fvs.locais || []).map(local => `<th style="width:8%">${local}</th>`).join('')}
+              ${(fvs.locais || []).map(local => {
+                const partes = local.split(' / ');
+                const folha = partes.pop();
+                const contexto = partes.join(' / ');
+                return `<th style="width:8%;text-align:center;padding:4px 6px">
+                  ${contexto ? `<div style="font-size:9px;color:var(--text3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;margin:0 auto">${contexto}</div>` : ''}
+                  <div style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap">${folha}</div>
+                </th>`;
+              }).join('')}
             </tr>
           </thead>
           <tbody>
