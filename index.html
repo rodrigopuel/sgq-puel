@@ -444,6 +444,10 @@ td.td-cel span{font-weight:700;font-size:11px}
       <div class="nav-item" onclick="navegar('consultor')" id="nav-consultor" data-tooltip="Consultor IA">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/><path d="M8 10v2M6.5 12h3"/></svg><span>Consultor IA</span>
       </div>
+      <div class="sidebar-section">CADASTROS</div>
+      <div class="nav-item" onclick="navegar('locais')" id="nav-locais" data-tooltip="Locais">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a4 4 0 014 4c0 3.5-4 9-4 9S4 8.5 4 5a4 4 0 014-4z"/><circle cx="8" cy="5" r="1.5"/></svg><span>Locais</span>
+      </div>
       <div class="sidebar-bottom">
         <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);line-height:1.8">SGQ Puel v2.0<br>Com Supabase</div>
       </div>
@@ -619,7 +623,7 @@ async function iniciarApp(){
 
 function mostrarTela(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Exportar',consultas:'Consultas',consultor:'Consultor IA',fornecedores:'Fornecedores',usuarios:'Usuários'};
+const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Exportar',consultas:'Consultas',consultor:'Consultor IA',locais:'Locais',fornecedores:'Fornecedores',usuarios:'Usuários'};
 
 async function navegar(s){
   // Exigir seleção de obra para FVS, FVM e Dossiê
@@ -672,6 +676,7 @@ async function navegar(s){
       dossie: () => renderDossie(m),
       consultas: () => renderConsultas(m),
       consultor: () => renderConsultor(m),
+      locais: () => renderLocais(m),
       fornecedores: () => renderFornecedores(m),
       usuarios: () => renderUsuarios(m)
     };
@@ -7026,6 +7031,328 @@ async function toggleFornecedor(fornecedorId){
     toast('Erro ao alterar status do fornecedor', 'error');
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCAIS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Estado do formulário de novo local
+let _localForm = { torre:'', tipo:'', pavimento:'', setor:'', ultimos:[] };
+
+function localFormReset() {
+  _localForm = { torre:'', tipo:'', pavimento:'', setor:'', ultimos:[] };
+}
+
+async function renderLocais(m) {
+  try {
+    const client = await esperarSupabase();
+    const obras = await client.getObras(true);
+    const obraAtual = obraSelecionadaId ? obras.find(o => o.id === obraSelecionadaId) : null;
+    const locais = obraAtual ? await client.getLocais(obraAtual.id) : [];
+
+    localFormReset();
+
+    m.innerHTML = `
+      <div class="page-header">
+        <div><div class="page-title">Locais</div><div class="page-sub">${obraAtual ? obraAtual.nome : 'Selecione uma obra no menu lateral'}</div></div>
+        ${obraAtual ? `<button class="btn btn-primary" onclick="abrirModalNovoLocal()">+ Novo Local</button>` : ''}
+      </div>
+
+      ${!obraAtual ? `<div class="empty"><div class="empty-icon">📍</div><div class="empty-title">Nenhuma obra selecionada</div><div class="empty-desc">Selecione uma obra no menu lateral para gerenciar seus locais.</div></div>` : `
+
+      <!-- Árvore de locais cadastrados -->
+      <div id="locais-tree">
+        ${renderLocaisTree(locais)}
+      </div>
+
+      <!-- Modal novo local -->
+      <div class="modal-overlay" id="modal-novo-local">
+        <div class="modal" style="max-width:520px">
+          <div class="modal-header">
+            <div class="modal-title">Novo Local</div>
+            <button class="modal-close" onclick="fecharModal('modal-novo-local')">✕</button>
+          </div>
+          <div class="modal-body" id="local-form-body">
+            ${renderLocalFormStep()}
+          </div>
+        </div>
+      </div>
+      `}
+    `;
+  } catch(e) {
+    console.error('Erro ao carregar locais:', e);
+    m.innerHTML = '<div class="empty"><div class="empty-title">Erro ao carregar locais</div></div>';
+  }
+}
+
+function renderLocaisTree(locais) {
+  if (!locais.length) return `
+    <div class="empty">
+      <div class="empty-icon">📍</div>
+      <div class="empty-title">Nenhum local cadastrado</div>
+      <div class="empty-desc">Clique em "+ Novo Local" para começar.</div>
+    </div>`;
+
+  // Agrupa hierarquicamente
+  const tree = {};
+  locais.forEach(l => {
+    const torre = l.torre || '—';
+    const tipo  = l.tipo  || '—';
+    if (!tree[torre]) tree[torre] = {};
+    if (!tree[torre][tipo]) tree[torre][tipo] = { interno: {}, externo: [] };
+
+    if (tipo === 'interno') {
+      const pav  = l.pavimento || '—';
+      const set_ = l.setor     || '—';
+      if (!tree[torre][tipo].interno[pav]) tree[torre][tipo].interno[pav] = {};
+      if (!tree[torre][tipo].interno[pav][set_]) tree[torre][tipo].interno[pav][set_] = [];
+      tree[torre][tipo].interno[pav][set_].push(l);
+    } else {
+      tree[torre][tipo].externo.push(l);
+    }
+  });
+
+  let html = '';
+  Object.entries(tree).forEach(([torre, tipos]) => {
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);font-family:var(--font-cond);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:15px">🏗</span> Torre ${torre}
+      </div>`;
+
+    Object.entries(tipos).forEach(([tipo, dados]) => {
+      html += `<div style="margin-left:16px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono);margin-bottom:6px">${tipo === 'interno' ? '🏠 Interno' : '🌳 Externo'}</div>`;
+
+      if (tipo === 'interno') {
+        Object.entries(dados.interno).forEach(([pav, setores]) => {
+          html += `<div style="margin-left:16px;margin-bottom:6px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">📐 ${pav}</div>`;
+          Object.entries(setores).forEach(([setor, rows]) => {
+            const unidades = rows.map(r => r.unidade).filter(Boolean);
+            html += `<div style="margin-left:16px;margin-bottom:4px">
+              <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Setor ${setor}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-left:12px">
+                ${unidades.map(u => `
+                  <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 8px 2px 10px;font-size:12px;color:var(--text2)">
+                    ${u}
+                    <button onclick="excluirLocal('${rows.find(r=>r.unidade===u)?.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0 0 0 4px;line-height:1" title="Remover">✕</button>
+                  </div>`).join('')}
+              </div>
+            </div>`;
+          });
+          html += `</div>`;
+        });
+      } else {
+        const fachadas = dados.externo;
+        html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-left:16px">
+          ${fachadas.map(f => `
+            <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 8px 2px 10px;font-size:12px;color:var(--text2)">
+              ${f.fachada}
+              <button onclick="excluirLocal('${f.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0 0 0 4px;line-height:1" title="Remover">✕</button>
+            </div>`).join('')}
+        </div>`;
+      }
+
+      html += `</div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  return `<div class="chart-wrap" style="padding:16px 20px">${html}</div>`;
+}
+
+function renderLocalFormStep() {
+  const f = _localForm;
+
+  // ── Passo 1: Torre ──
+  if (!f.torre) return `
+    <div class="field">
+      <label>TORRE</label>
+      <input type="text" id="local-input-torre" class="input" placeholder="Ex: A, B, Torre 1...">
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-primary" onclick="localAvancar('torre')">Próximo →</button>
+    </div>`;
+
+  // ── Passo 2: Interno / Externo ──
+  if (!f.tipo) return `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono)">Torre: <strong style="color:var(--text)">${f.torre}</strong></div>
+    <div class="field">
+      <label>INTERNO OU EXTERNO</label>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <button class="btn btn-secondary" style="flex:1;padding:14px" onclick="localEscolherTipo('interno')">🏠 Interno</button>
+        <button class="btn btn-secondary" style="flex:1;padding:14px" onclick="localEscolherTipo('externo')">🌳 Externo</button>
+      </div>
+    </div>`;
+
+  // ── Ramo EXTERNO: Passo 3 = Fachadas (múltiplos) ──
+  if (f.tipo === 'externo') return `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono)">Torre: <strong style="color:var(--text)">${f.torre}</strong> · <strong style="color:var(--text)">Externo</strong></div>
+    <div class="field">
+      <label>FACHADA(S)</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <input type="text" id="local-input-ultimo" class="input" placeholder="Ex: Norte, Sul, Fachada A..." style="flex:1" onkeydown="if(event.key==='Enter')localAdicionarUltimo()">
+        <button class="btn btn-secondary" onclick="localAdicionarUltimo()">+ Add</button>
+      </div>
+      <div id="local-ultimos-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+        ${f.ultimos.map((u,i)=>`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:6px">${u}<button onclick="localRemoverUltimo(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px">✕</button></span>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="btn btn-ghost" onclick="localVoltar()">← Voltar</button>
+      <button class="btn btn-primary" onclick="localSalvar()" ${f.ultimos.length===0?'disabled':''}>Salvar ${f.ultimos.length} local(is)</button>
+    </div>`;
+
+  // ── Ramo INTERNO: Passo 3 = Pavimento ──
+  if (!f.pavimento) return `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono)">Torre: <strong style="color:var(--text)">${f.torre}</strong> · <strong style="color:var(--text)">Interno</strong></div>
+    <div class="field">
+      <label>PAVIMENTO</label>
+      <input type="text" id="local-input-pavimento" class="input" placeholder="Ex: Térreo, 1º Pavimento...">
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="btn btn-ghost" onclick="localVoltar()">← Voltar</button>
+      <button class="btn btn-primary" onclick="localAvancar('pavimento')">Próximo →</button>
+    </div>`;
+
+  // ── Ramo INTERNO: Passo 4 = Setor ──
+  if (!f.setor) return `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono)">Torre: <strong style="color:var(--text)">${f.torre}</strong> · Interno · <strong style="color:var(--text)">${f.pavimento}</strong></div>
+    <div class="field">
+      <label>SETOR</label>
+      <input type="text" id="local-input-setor" class="input" placeholder="Ex: A, B, Setor 1...">
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="btn btn-ghost" onclick="localVoltar()">← Voltar</button>
+      <button class="btn btn-primary" onclick="localAvancar('setor')">Próximo →</button>
+    </div>`;
+
+  // ── Ramo INTERNO: Passo 5 = Unidades (múltiplos) ──
+  return `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono)">Torre: <strong style="color:var(--text)">${f.torre}</strong> · Interno · ${f.pavimento} · Setor <strong style="color:var(--text)">${f.setor}</strong></div>
+    <div class="field">
+      <label>UNIDADE(S)</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <input type="text" id="local-input-ultimo" class="input" placeholder="Ex: 101, 102, Apto 201..." style="flex:1" onkeydown="if(event.key==='Enter')localAdicionarUltimo()">
+        <button class="btn btn-secondary" onclick="localAdicionarUltimo()">+ Add</button>
+      </div>
+      <div id="local-ultimos-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+        ${f.ultimos.map((u,i)=>`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:6px">${u}<button onclick="localRemoverUltimo(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px">✕</button></span>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="btn btn-ghost" onclick="localVoltar()">← Voltar</button>
+      <button class="btn btn-primary" onclick="localSalvar()" ${f.ultimos.length===0?'disabled':''}>Salvar ${f.ultimos.length} unidade(s)</button>
+    </div>`;
+}
+
+function localRefreshForm() {
+  const body = document.getElementById('local-form-body');
+  if (body) body.innerHTML = renderLocalFormStep();
+}
+
+function abrirModalNovoLocal() {
+  localFormReset();
+  document.getElementById('modal-novo-local').classList.add('open');
+  localRefreshForm();
+}
+
+function localAvancar(campo) {
+  if (campo === 'torre') {
+    const v = document.getElementById('local-input-torre')?.value.trim();
+    if (!v) { toast('Informe o nome da Torre', 'error'); return; }
+    _localForm.torre = v;
+  } else if (campo === 'pavimento') {
+    const v = document.getElementById('local-input-pavimento')?.value.trim();
+    if (!v) { toast('Informe o Pavimento', 'error'); return; }
+    _localForm.pavimento = v;
+  } else if (campo === 'setor') {
+    const v = document.getElementById('local-input-setor')?.value.trim();
+    if (!v) { toast('Informe o Setor', 'error'); return; }
+    _localForm.setor = v;
+  }
+  localRefreshForm();
+}
+
+function localEscolherTipo(tipo) {
+  _localForm.tipo = tipo;
+  _localForm.ultimos = [];
+  localRefreshForm();
+}
+
+function localVoltar() {
+  const f = _localForm;
+  if (f.tipo === 'externo' || (f.tipo === 'interno' && !f.pavimento)) {
+    _localForm.tipo = '';
+  } else if (f.tipo === 'interno' && f.pavimento && !f.setor) {
+    _localForm.pavimento = '';
+  } else if (f.tipo === 'interno' && f.setor) {
+    _localForm.setor = '';
+    _localForm.ultimos = [];
+  } else {
+    _localForm.torre = '';
+    _localForm.tipo = '';
+  }
+  localRefreshForm();
+}
+
+function localAdicionarUltimo() {
+  const input = document.getElementById('local-input-ultimo');
+  const v = input?.value.trim();
+  if (!v) return;
+  if (_localForm.ultimos.includes(v)) { toast('Item já adicionado', 'error'); return; }
+  _localForm.ultimos.push(v);
+  input.value = '';
+  localRefreshForm();
+  // Manter foco
+  setTimeout(() => document.getElementById('local-input-ultimo')?.focus(), 50);
+}
+
+function localRemoverUltimo(idx) {
+  _localForm.ultimos.splice(idx, 1);
+  localRefreshForm();
+}
+
+async function localSalvar() {
+  const f = _localForm;
+  if (!f.ultimos.length) return;
+  try {
+    const client = await esperarSupabase();
+    for (const ultimo of f.ultimos) {
+      const row = {
+        obra_id:   obraSelecionadaId,
+        torre:     f.torre,
+        tipo:      f.tipo,
+        pavimento: f.tipo === 'interno' ? f.pavimento : null,
+        setor:     f.tipo === 'interno' ? f.setor     : null,
+        unidade:   f.tipo === 'interno' ? ultimo       : null,
+        fachada:   f.tipo === 'externo' ? ultimo       : null,
+      };
+      await client.insert('locais', row);
+    }
+    toast(`${f.ultimos.length} local(is) salvo(s) com sucesso`, 'success');
+    fecharModal('modal-novo-local');
+    renderLocais(document.getElementById('main-content'));
+  } catch(e) {
+    console.error('Erro ao salvar locais:', e);
+    toast('Erro ao salvar locais: ' + e.message, 'error');
+  }
+}
+
+async function excluirLocal(id) {
+  if (!confirm('Remover este local?')) return;
+  try {
+    const client = await esperarSupabase();
+    await client.remove('locais', id);
+    toast('Local removido', 'success');
+    renderLocais(document.getElementById('main-content'));
+  } catch(e) {
+    toast('Erro ao remover local: ' + e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function renderFornecedores(m){
   try {

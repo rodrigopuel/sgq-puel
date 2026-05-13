@@ -242,6 +242,11 @@ class SupabaseClient {
     return this.get('fornecedores', filtros);
   }
 
+  async getLocais(obraId) {
+    const filtros = obraId ? { obra_id: obraId } : {};
+    return this.get('locais', filtros);
+  }
+
   async uploadArquivoIS(file, path) {
     const { data, error } = await this.client.storage
       .from('instrucoes-servico')
