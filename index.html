@@ -1991,11 +1991,11 @@ async function abrirFVS(fvsId) {
                 let linha1, linha2;
                 if (p[1] === 'Interno' && p.length >= 5) {
                   // p = [torre, 'Interno', pavimento, 'Setor X', unidade]
-                  linha1 = `${p[0]} / ${p[1]} / ${p[3]}`;
+                  linha1 = `${p[0]} / ${p[3]}`;
                   linha2 = `Pav ${p[2]} - ${p[4]}`;
                 } else if (p[1] === 'Externo') {
                   // p = [torre, 'Externo', fachada]
-                  linha1 = `${p[0]} / ${p[1]}`;
+                  linha1 = `${p[0]}`;
                   linha2 = p[2] || '';
                 } else {
                   linha1 = p.slice(0, -1).join(' / ');
