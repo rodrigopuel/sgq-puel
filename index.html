@@ -444,7 +444,7 @@ td.td-cel span{font-weight:700;font-size:11px}
       <div class="nav-item" onclick="navegar('consultor')" id="nav-consultor" data-tooltip="Consultor IA">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/><path d="M8 10v2M6.5 12h3"/></svg><span>Consultor IA</span>
       </div>
-      <div class="sidebar-section">CADASTROS</div>
+      <div class="sidebar-section" id="sidebar-cadastros-section">CADASTROS</div>
       <div class="nav-item" onclick="navegar('locais')" id="nav-locais" data-tooltip="Locais">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a4 4 0 014 4c0 3.5-4 9-4 9S4 8.5 4 5a4 4 0 014-4z"/><circle cx="8" cy="5" r="1.5"/></svg><span>Locais</span>
       </div>
@@ -610,6 +610,8 @@ async function iniciarApp(){
     document.getElementById('user-name-display').textContent=usuarioAtual.nome.split(' ')[0];
     document.getElementById('user-avatar').textContent=usuarioAtual.nome[0];
     document.getElementById('gear-item-templates-is').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
+    document.getElementById('sidebar-cadastros-section').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
+    document.getElementById('nav-locais').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
     
     await renderObraList();
     initSidebar();
@@ -7044,6 +7046,10 @@ function localFormReset() {
 }
 
 async function renderLocais(m) {
+  if (usuarioAtual?.perfil !== 'admin') {
+    m.innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">Acesso restrito</div><div class="empty-desc">Somente administradores podem gerenciar o cadastro de locais.</div></div>';
+    return;
+  }
   try {
     const client = await esperarSupabase();
     const obras = await client.getObras(true);
@@ -7341,13 +7347,37 @@ async function localSalvar() {
 }
 
 async function excluirLocal(id) {
-  if (!confirm('Remover este local?')) return;
   try {
     const client = await esperarSupabase();
+
+    // Buscar o local para montar o caminho de exibição
+    const local = await client.getById('locais', id);
+    if (!local) { toast('Local não encontrado', 'error'); return; }
+
+    // Montar string de identificação do local (como aparece nas FVS)
+    const caminhoLocal = local.tipo === 'interno'
+      ? [local.torre, 'Interno', local.pavimento, local.setor ? 'Setor ' + local.setor : '', local.unidade].filter(Boolean).join(' / ')
+      : [local.torre, 'Externo', local.fachada].filter(Boolean).join(' / ');
+
+    // Verificar se alguma FVS usa este local
+    const todasFVS = await client.getFVS({ obra_id: local.obra_id });
+    const fvsUsando = todasFVS.filter(fvs =>
+      Array.isArray(fvs.locais) && fvs.locais.includes(caminhoLocal)
+    );
+
+    if (fvsUsando.length > 0) {
+      const codigos = fvsUsando.map(f => f.cod).join(', ');
+      alert(`Este local não pode ser removido pois está sendo utilizado em ${fvsUsando.length} FVS: ${codigos}.\n\nPara removê-lo, primeiro exclua ou edite as FVS que o utilizam.`);
+      return;
+    }
+
+    if (!confirm(`Remover o local "${caminhoLocal}"?`)) return;
+
     await client.remove('locais', id);
     toast('Local removido', 'success');
     renderLocais(document.getElementById('main-content'));
   } catch(e) {
+    console.error('Erro ao remover local:', e);
     toast('Erro ao remover local: ' + e.message, 'error');
   }
 }
