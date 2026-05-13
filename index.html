@@ -1940,7 +1940,28 @@ async function abrirFVS(fvsId) {
     const templates = await client.getTemplatesFVS();
     const template = templates.find(t => t.id === fvs.template_id);
     
-    // Renderizar detalhes da FVS com 3 boxes informativos
+    // Armazenar contexto global e exibir seletor de locais
+    window.fvsAtual = fvs;
+    window._templateAtual = template;
+    window._obraAtual = obra;
+    window._inspetorAtual = inspetor;
+    window._fvsLocaisFiltro = null; // reset ao abrir nova FVS
+    renderTelaLocaisFVS();
+  } catch (error) {
+    console.error('Erro ao abrir FVS:', error);
+    toast('Erro ao carregar FVS', 'error');
+  }
+}
+
+async function renderGradeFVS() {
+  try {
+    const fvs = window.fvsAtual;
+    const template = window._templateAtual;
+    const obra = window._obraAtual;
+    const inspetor = window._inspetorAtual;
+    const locaisVisiveis = window._fvsLocaisFiltro
+      ? (fvs.locais || []).filter(l => window._fvsLocaisFiltro.includes(l))
+      : (fvs.locais || []);
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
       <div style="margin-bottom:14px">
@@ -2043,44 +2064,17 @@ async function abrirFVS(fvsId) {
             
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <h3 style="font-size:16px;font-weight:600;color:var(--text);font-family:var(--font-cond);margin:0">GRADE DE INSPEÇÃO</h3>
-          <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">
-            ${(fvs.criterios || []).length} itens · <span id="fvs-grade-counter">${(fvs.locais || []).length} locais</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button onclick="renderTelaLocaisFVS()"
+              style="display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid ${window._fvsLocaisFiltro ? 'var(--accent)' : 'var(--border)'};background:${window._fvsLocaisFiltro ? 'rgba(202,180,132,.12)' : 'var(--bg3)'};color:${window._fvsLocaisFiltro ? 'var(--accent)' : 'var(--text2)'};cursor:pointer;transition:all .15s">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2C5.2 2 3 4.2 3 7c0 3.9 5 9 5 9s5-5.1 5-9c0-2.8-2.2-5-5-5zm0 6.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>
+              Locais ${window._fvsLocaisFiltro ? `(${locaisVisiveis.length}/${(fvs.locais||[]).length})` : `(${locaisVisiveis.length})`}
+            </button>
+            <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">
+              ${(fvs.criterios || []).length} itens
+            </div>
           </div>
         </div>
-        ${(() => {
-          // Computar grupos para os chips de filtro
-          const grps = {};
-          (fvs.locais || []).forEach((local, j) => {
-            const p = local.split(' / ');
-            let key, label;
-            if (p[1] === 'Interno' && p.length >= 5) {
-              key = `${p[0]}__int__${p[2]}`;
-              label = `${p[0]} · Pav ${p[2]}`;
-            } else if (p[1] === 'Externo') {
-              key = `${p[0]}__ext`;
-              label = `${p[0]} · Ext`;
-            } else {
-              key = `other__${j}`;
-              label = p[p.length - 1];
-            }
-            if (!grps[key]) grps[key] = { label, count: 0, idx: Object.keys(grps).length };
-            grps[key].count++;
-          });
-          const chips = Object.entries(grps).map(([key, g]) =>
-            `<button id="fvs-chip-${g.idx}" onclick="fvsGradeToggleGroup('${key}')"
-              style="font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s">
-              ${g.label} <span style="opacity:.5;font-size:10px">${g.count}</span>
-            </button>`
-          ).join('');
-          return `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)">
-            <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;margin-right:4px">Locais</span>
-            <button onclick="fvsGradeShowAll()" id="fvs-chip-all"
-              style="font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--accent);background:rgba(202,180,132,.1);color:var(--accent);cursor:pointer">
-              Todos
-            </button>
-            ${chips}
-          </div>`;
-        })()}
         
         <div class="table-wrap" style="overflow-x:auto">
         <table class="fvs-table">
@@ -2089,22 +2083,20 @@ async function abrirFVS(fvsId) {
               <th class="th-item" style="width:10%;min-width:75px">Item</th>
               <th class="th-item" style="width:8%;min-width:75px">Método</th>
               <th class="th-item" style="width:8%;min-width:75px">Tolerância</th>
-              ${(fvs.locais || []).map(local => {
+              ${locaisVisiveis.map(local => {
                 const p = local.split(' / ');
                 let linha1, linha2;
                 if (p[1] === 'Interno' && p.length >= 5) {
-                  // p = [torre, 'Interno', pavimento, 'Setor X', unidade]
                   linha1 = `${p[0]} / ${p[3]}`;
                   linha2 = `Pav ${p[2]} - ${p[4]}`;
                 } else if (p[1] === 'Externo') {
-                  // p = [torre, 'Externo', fachada]
                   linha1 = `${p[0]}`;
                   linha2 = p[2] || '';
                 } else {
                   linha1 = p.slice(0, -1).join(' / ');
                   linha2 = p[p.length - 1];
                 }
-                return `<th data-local-col="${local}" style="width:8%;text-align:center;padding:4px 6px">
+                return `<th style="width:8%;text-align:center;padding:4px 6px">
                   <div style="font-size:9px;color:var(--text3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;margin:0 auto">${linha1}</div>
                   <div style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap">${linha2}</div>
                 </th>`;
@@ -2119,13 +2111,14 @@ async function abrirFVS(fvsId) {
                 <td class="td-item" style="width:10%;min-width:75px">${criterio.item}</td>
                 <td class="td-item" style="width:8%;min-width:75px">${criterio.metodo || ''}</td>
                 <td class="td-item" style="width:8%;min-width:75px">${criterio.tolerancia || ''}</td>
-                ${(fvs.locais || []).map((local, j) => {
+                ${locaisVisiveis.map(local => {
+                  const j = (fvs.locais || []).indexOf(local);
                   const chave = `${i}-${j}`;
                   const resultado = fvs.resultados?.[chave];
                   const aud = fvs.auditoria?.[chave];
                   const tooltip = aud ? `Preenchido por ${aud.nome} · ${new Date(aud.data).toLocaleDateString('pt-BR')}` : '';
                   return `
-                  <td data-local-col="${local}" style="width:8%">
+                  <td style="width:8%">
                     <button class="cell-btn ${resultado ? `cell-${resultado}` : 'cell-blank'}"
                             title="${tooltip}"
                             onclick="marcarCelulaFVS('${fvs.id}', ${i}, '${local}', this)">
@@ -2177,13 +2170,9 @@ async function abrirFVS(fvsId) {
       renderOcorrenciasFVS([]);
     }
     
-    // Armazenar FVS atual para uso em outras funções
-    window.fvsAtual = fvs;
-    _fvsGradeGroups = {}; // Reset filtro de grupos ao abrir nova FVS
-    
   } catch (error) {
-    console.error('Erro ao abrir FVS:', error);
-    toast('Erro ao carregar FVS', 'error');
+    console.error('Erro ao renderizar grade FVS:', error);
+    toast('Erro ao carregar grade', 'error');
   }
 }
 
@@ -3344,82 +3333,177 @@ function calcularPercentualNC(fvs) {
   return ncItem ? Math.round(ncItem.percentual) : 0;
 }
 
-// ── Filtro de locais na grade ──────────────────────────────────────────────
-let _fvsGradeGroups = {}; // key → { label, locais: [], active }
+// ── Seletor de Locais FVS ─────────────────────────────────────────────────────
 
-function _fvsGradeInitGroups() {
-  _fvsGradeGroups = {};
-  (window.fvsAtual?.locais || []).forEach(local => {
-    const p = local.split(' / ');
-    let key, label;
-    if (p[1] === 'Interno' && p.length >= 5) {
-      key = `${p[0]}__int__${p[2]}`;
-      label = `${p[0]} · Pav ${p[2]}`;
-    } else if (p[1] === 'Externo') {
-      key = `${p[0]}__ext`;
-      label = `${p[0]} · Ext`;
+function renderTelaLocaisFVS() {
+  const fvs = window.fvsAtual;
+  if (!fvs) return;
+  const todos = fvs.locais || [];
+  const mainContent = document.getElementById('main-content');
+
+  mainContent.innerHTML = `
+    <div style="margin-bottom:14px">
+      <button class="btn btn-ghost btn-sm" onclick="voltarESalvarFVS('${fvs.id}')">← Salvar e voltar</button>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;max-width:640px;margin:0 auto">
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Locais para Inspecionar</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-cond)">${fvs.cod || ''}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Selecione os locais que deseja visualizar na grade</div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span id="fvs-filter-count" style="font-size:12px;color:var(--text3);font-family:var(--font-mono)"></span>
+        <div style="display:flex;gap:8px">
+          <button type="button" onclick="_fvsFilterTodos(true)"
+            style="font-size:11px;padding:3px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">
+            Todos
+          </button>
+          <button type="button" onclick="_fvsFilterTodos(false)"
+            style="font-size:11px;padding:3px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">
+            Nenhum
+          </button>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;max-height:55vh;overflow-y:auto;background:var(--bg)">
+        ${_buildLocaisFilterTree(todos)}
+      </div>
+
+      <div style="margin-top:16px;display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="confirmarFiltroLocaisFVS()">
+          Abrir Grade →
+        </button>
+      </div>
+    </div>
+  `;
+
+  _fvsFilterContador();
+}
+
+function _buildLocaisFilterTree(paths) {
+  const checkedSet = new Set(window._fvsLocaisFiltro || paths);
+
+  // Agrupa por torre → tipo → pavimento → setor
+  const tree = {};
+  paths.forEach(path => {
+    const p = path.split(' / ');
+    const torre = p[0] || '—';
+    const tipo  = p[1] || '—'; // Interno | Externo
+    if (!tree[torre]) tree[torre] = { interno: {}, externo: [] };
+    if (tipo === 'Interno') {
+      const pav   = p[2] || '—';
+      const setor = p[3] || '—';
+      if (!tree[torre].interno[pav]) tree[torre].interno[pav] = {};
+      if (!tree[torre].interno[pav][setor]) tree[torre].interno[pav][setor] = [];
+      tree[torre].interno[pav][setor].push(path);
     } else {
-      key = `other__${local}`;
-      label = p[p.length - 1];
+      tree[torre].externo.push(path);
     }
-    if (!_fvsGradeGroups[key]) _fvsGradeGroups[key] = { label, locais: [], active: true };
-    _fvsGradeGroups[key].locais.push(local);
   });
-}
 
-function fvsGradeToggleGroup(key) {
-  if (!Object.keys(_fvsGradeGroups).length) _fvsGradeInitGroups();
-  const g = _fvsGradeGroups[key];
-  if (!g) return;
-  g.active = !g.active;
-  _fvsGradeAplicar();
-}
+  const btnBulk = (dataAttr, val) =>
+    `<button type="button" onclick="_fvsFilterGrp('${dataAttr}','${val.replace(/'/g,"\\'")}',true)"
+      title="Selecionar todos" style="width:9px;height:9px;border-radius:2px;border:none;background:#166534;color:#4ade80;cursor:pointer;margin-left:6px;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</button>
+    <button type="button" onclick="_fvsFilterGrp('${dataAttr}','${val.replace(/'/g,"\\'")}',false)"
+      title="Desmarcar todos" style="width:9px;height:9px;border-radius:2px;border:none;background:#7f1d1d;color:#f87171;cursor:pointer;margin-left:3px;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>`;
 
-function fvsGradeShowAll() {
-  if (!Object.keys(_fvsGradeGroups).length) _fvsGradeInitGroups();
-  Object.values(_fvsGradeGroups).forEach(g => g.active = true);
-  _fvsGradeAplicar();
-}
+  const chk = (path, dataAttrs) => {
+    const attrs = Object.entries(dataAttrs).map(([k,v]) => `data-${k}="${v.replace(/"/g,'&quot;')}"`).join(' ');
+    const label = path.split(' / ').pop();
+    return `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0">
+      <input type="checkbox" class="fvs-filter-chk" value="${path.replace(/"/g,'&quot;')}" ${attrs}
+        ${checkedSet.has(path) ? 'checked' : ''}
+        onchange="_fvsFilterContador()" style="width:14px;height:14px;accent-color:var(--accent)">
+      <span style="font-size:12px;color:var(--text2)">${label}</span>
+    </label>`;
+  };
 
-function _fvsGradeAplicar() {
-  const totalLocais = (window.fvsAtual?.locais || []).length;
-  let visiveis = 0;
+  let html = '';
+  Object.entries(tree).forEach(([torre, dados]) => {
+    const gT = `t-${torre}`;
+    html += `<div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">
+        🏗 Torre ${torre} ${btnBulk('g-torre', gT)}
+      </div>`;
 
-  Object.values(_fvsGradeGroups).forEach(g => {
-    g.locais.forEach(local => {
-      const show = g.active;
-      if (show) visiveis++;
-      document.querySelectorAll(`[data-local-col="${CSS.escape(local)}"]`).forEach(el => {
-        el.style.display = show ? '' : 'none';
+    // Interno
+    if (Object.keys(dados.interno).length) {
+      const gTi = `${gT}-int`;
+      html += `<div style="margin-left:14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">
+          🏠 Interno ${btnBulk('g-ti', gTi)}
+        </div>`;
+      Object.entries(dados.interno).forEach(([pav, setores]) => {
+        const gP = `${gTi}-${pav}`;
+        html += `<div style="margin-left:14px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;font-size:12px;color:var(--text2);margin-bottom:3px">
+            📐 ${pav} ${btnBulk('g-pav', gP)}
+          </div>`;
+        Object.entries(setores).forEach(([setor, items]) => {
+          const gS = `${gP}-${setor}`;
+          html += `<div style="margin-left:14px;margin-bottom:4px">
+            <div style="display:flex;align-items:center;font-size:11px;color:var(--text3);margin-bottom:2px">
+              ${setor} ${btnBulk('g-set', gS)}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin-left:10px">
+              ${items.map(p => chk(p, {'g-torre':gT,'g-ti':gTi,'g-pav':gP,'g-set':gS})).join('')}
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
       });
-    });
-  });
-
-  // Atualizar contador
-  const counter = document.getElementById('fvs-grade-counter');
-  if (counter) counter.textContent = visiveis === totalLocais
-    ? `${totalLocais} locais`
-    : `${visiveis} de ${totalLocais} locais visíveis`;
-
-  // Atualizar estilo dos chips
-  let idx = 0;
-  Object.entries(_fvsGradeGroups).forEach(([, g]) => {
-    const chip = document.getElementById(`fvs-chip-${idx}`);
-    if (chip) {
-      chip.style.opacity       = g.active ? '1' : '0.35';
-      chip.style.borderStyle   = g.active ? 'solid' : 'dashed';
-      chip.style.background    = g.active ? 'var(--bg3)' : 'transparent';
+      html += `</div>`;
     }
-    idx++;
+
+    // Externo
+    if (dados.externo.length) {
+      const gTe = `${gT}-ext`;
+      html += `<div style="margin-left:14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">
+          🌳 Externo ${btnBulk('g-te', gTe)}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin-left:14px">
+          ${dados.externo.map(p => chk(p, {'g-torre':gT,'g-te':gTe})).join('')}
+        </div>
+      </div>`;
+    }
+
+    html += `</div>`;
   });
 
-  // Botão Todos
-  const all = document.getElementById('fvs-chip-all');
-  if (all) {
-    const todosAtivos = Object.values(_fvsGradeGroups).every(g => g.active);
-    all.style.opacity = todosAtivos ? '1' : '0.5';
-  }
+  return html || `<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Nenhum local cadastrado nesta FVS.</div>`;
 }
+
+function _fvsFilterGrp(dataAttr, val, checked) {
+  document.querySelectorAll(`.fvs-filter-chk[data-${dataAttr}="${val}"]`)
+    .forEach(c => { c.checked = checked; });
+  _fvsFilterContador();
+}
+
+function _fvsFilterTodos(checked) {
+  document.querySelectorAll('.fvs-filter-chk').forEach(c => { c.checked = checked; });
+  _fvsFilterContador();
+}
+
+function _fvsFilterContador() {
+  const total = document.querySelectorAll('.fvs-filter-chk').length;
+  const sel   = document.querySelectorAll('.fvs-filter-chk:checked').length;
+  const el    = document.getElementById('fvs-filter-count');
+  if (el) el.textContent = sel === total
+    ? `${total} locais selecionados (todos)`
+    : `${sel} de ${total} locais selecionados`;
+}
+
+async function confirmarFiltroLocaisFVS() {
+  const checked = Array.from(document.querySelectorAll('.fvs-filter-chk:checked')).map(c => c.value);
+  if (!checked.length) { toast('Selecione ao menos um local', 'error'); return; }
+  const todos = window.fvsAtual?.locais || [];
+  window._fvsLocaisFiltro = checked.length === todos.length ? null : checked;
+  await renderGradeFVS();
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 function atualizarResumoFVS() {
