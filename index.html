@@ -1949,8 +1949,8 @@ async function abrirFVS(fvsId) {
     window._templateAtual = template;
     window._obraAtual = obra;
     window._inspetorAtual = inspetor;
-    window._fvsLocaisFiltro = null; // reset ao abrir nova FVS
-    renderTelaLocaisFVS();
+    window._fvsLocaisFiltro = []; // inicia sem locais selecionados
+    await renderGradeFVS();
   } catch (error) {
     console.error('Erro ao abrir FVS:', error);
     toast('Erro ao carregar FVS', 'error');
@@ -2070,9 +2070,9 @@ async function renderGradeFVS() {
           <h3 style="font-size:16px;font-weight:600;color:var(--text);font-family:var(--font-cond);margin:0">GRADE DE INSPEÇÃO</h3>
           <div style="display:flex;align-items:center;gap:10px">
             <button onclick="renderTelaLocaisFVS()"
-              style="display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid ${window._fvsLocaisFiltro ? 'var(--accent)' : 'var(--border)'};background:${window._fvsLocaisFiltro ? 'rgba(202,180,132,.12)' : 'var(--bg3)'};color:${window._fvsLocaisFiltro ? 'var(--accent)' : 'var(--text2)'};cursor:pointer;transition:all .15s">
+              style="display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 12px;border-radius:12px;border:1px solid ${locaisVisiveis.length === 0 ? 'var(--accent)' : locaisVisiveis.length < (fvs.locais||[]).length ? 'var(--accent)' : 'var(--border)'};background:${locaisVisiveis.length === 0 ? 'rgba(202,180,132,.15)' : locaisVisiveis.length < (fvs.locais||[]).length ? 'rgba(202,180,132,.08)' : 'var(--bg3)'};color:${locaisVisiveis.length === 0 ? 'var(--accent)' : locaisVisiveis.length < (fvs.locais||[]).length ? 'var(--accent)' : 'var(--text2)'};cursor:pointer;transition:all .15s;font-weight:${locaisVisiveis.length === 0 ? '600' : '400'}">
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2C5.2 2 3 4.2 3 7c0 3.9 5 9 5 9s5-5.1 5-9c0-2.8-2.2-5-5-5zm0 6.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>
-              Locais ${window._fvsLocaisFiltro ? `(${locaisVisiveis.length}/${(fvs.locais||[]).length})` : `(${locaisVisiveis.length})`}
+              ${locaisVisiveis.length === 0 ? 'Selecionar locais' : `Locais (${locaisVisiveis.length}${locaisVisiveis.length < (fvs.locais||[]).length ? '/' + (fvs.locais||[]).length : ''})`}
             </button>
             <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">
               ${(fvs.criterios || []).length} itens
@@ -2080,6 +2080,13 @@ async function renderGradeFVS() {
           </div>
         </div>
         
+        ${locaisVisiveis.length === 0 ? `
+        <div style="text-align:center;padding:48px 24px;border:1px dashed var(--border);border-radius:var(--radius);margin-bottom:12px">
+          <div style="font-size:32px;margin-bottom:12px">📍</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Nenhum local selecionado</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Selecione os locais para exibir as colunas de inspeção</div>
+          <button onclick="renderTelaLocaisFVS()" class="btn btn-primary" style="font-size:12px">Selecionar locais →</button>
+        </div>` : `
         <div class="table-wrap" style="overflow-x:auto">
         <table class="fvs-table">
           <thead>
@@ -2136,8 +2143,8 @@ async function renderGradeFVS() {
             }).join('')}
           </tbody>
         </table>
-      </div>
-      
+      </div>`}
+
       <div class="ocorrencias-section">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
           <div style="font-size:10px;font-weight:500;color:var(--text3);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase">Ocorrências</div>
@@ -3345,9 +3352,12 @@ function renderTelaLocaisFVS() {
   const todos = fvs.locais || [];
   const mainContent = document.getElementById('main-content');
 
+  const temLocaisSelecionados = window._fvsLocaisFiltro && window._fvsLocaisFiltro.length > 0;
+
   mainContent.innerHTML = `
-    <div style="margin-bottom:14px">
+    <div style="margin-bottom:14px;display:flex;gap:8px;align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="voltarESalvarFVS('${fvs.id}')">← Salvar e voltar</button>
+      ${temLocaisSelecionados ? `<button class="btn btn-ghost btn-sm" onclick="renderGradeFVS()">← Cancelar</button>` : ''}
     </div>
 
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;max-width:640px;margin:0 auto">
