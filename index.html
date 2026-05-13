@@ -439,6 +439,9 @@ td.td-cel span{font-weight:700;font-size:11px}
       <div class="nav-item" onclick="navegar('dossie')" id="nav-dossie" data-tooltip="Exportar">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v1H3z"/><path d="M3 7h10v1H3z"/><path d="M3 11h7v1H3z"/></svg><span>Exportar</span>
       </div>
+      <div class="nav-item" onclick="navegar('rel-nc')" id="nav-rel-nc" data-tooltip="Relatório NC">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8h6M5 5h3M5 11h4"/><circle cx="11" cy="5" r="1.5" fill="currentColor" stroke="none"/></svg><span>Relatório NC</span>
+      </div>
       <div class="nav-item" onclick="navegar('consultas')" id="nav-consultas" data-tooltip="Consultas">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg><span>Consultas</span>
       </div>
@@ -626,7 +629,7 @@ async function iniciarApp(){
 
 function mostrarTela(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Exportar',consultas:'Consultas',consultor:'Consultor IA',locais:'Locais',fornecedores:'Fornecedores',usuarios:'Usuários'};
+const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Exportar',consultas:'Consultas','rel-nc':'Relatório de NC',consultor:'Consultor IA',locais:'Locais',fornecedores:'Fornecedores',usuarios:'Usuários'};
 
 async function navegar(s){
   // Exigir seleção de obra para FVS, FVM e Dossiê
@@ -678,6 +681,7 @@ async function navegar(s){
       'templates-is':  () => renderTemplatesIS(m),
       dossie: () => renderDossie(m),
       consultas: () => renderConsultas(m),
+      'rel-nc': () => renderRelatorioNC(m),
       consultor: () => renderConsultor(m),
       locais: () => renderLocais(m),
       fornecedores: () => renderFornecedores(m),
@@ -6284,6 +6288,232 @@ async function reverterTemplateFVM(templateId) {
     toast('Erro ao reverter template: ' + error.message, 'error');
   }
 }
+
+// ── Relatório de Não Conformidades ────────────────────────────────────────────
+let _relNcDados = []; // cache dos dados para filtragem local
+
+async function renderRelatorioNC(m) {
+  m.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">Carregando...</div>`;
+  try {
+    const client = await esperarSupabase();
+    const [todasOcorrencias, fvsList, obras, usuarios] = await Promise.all([
+      client.getOcorrencias(),
+      client.getFVS(),
+      client.getObras(),
+      client.getUsuarios()
+    ]);
+
+    // Monta mapa de lookup
+    const fvsMap  = Object.fromEntries(fvsList.map(f => [f.id, f]));
+    const obraMap = Object.fromEntries(obras.map(o => [o.id, o]));
+    const userMap = Object.fromEntries(usuarios.map(u => [u.id, u]));
+
+    // Enriquece ocorrências com dados de FVS e obra
+    _relNcDados = todasOcorrencias.map(oc => {
+      const fvs  = fvsMap[oc.fvs_id]  || {};
+      const obra = obraMap[fvs.obra_id] || {};
+      const resp = userMap[oc.responsavel_id] || {};
+      const prazoDate = oc.prazo ? new Date(oc.prazo + 'T12:00') : null;
+      return {
+        ...oc,
+        fvsCod:    fvs.cod      || '—',
+        fvsServico:fvs.servico  || '—',
+        obraNome:  obra.nome    || '—',
+        respNome:  resp.nome    || oc.responsavel_id || '—',
+        prazoDate,
+        atrasada: prazoDate && prazoDate < new Date() && oc.status !== 'encerrada'
+      };
+    });
+
+    // Opções para dropdowns
+    const fvsCods    = [...new Set(_relNcDados.map(r => r.fvsCod).filter(Boolean))].sort();
+    const servicos   = [...new Set(_relNcDados.map(r => r.fvsServico).filter(x => x && x !== '—'))].sort();
+    const locaisOpc  = [...new Set(_relNcDados.map(r => r.local).filter(Boolean))].sort();
+
+    m.innerHTML = `
+      <div class="page-header">
+        <div>
+          <div class="page-title">Relatório de NC</div>
+          <div class="page-sub">Não conformidades registradas em todas as FVS</div>
+        </div>
+      </div>
+
+      <!-- KPIs resumo -->
+      <div id="rel-nc-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+      <!-- Filtros -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Filtros</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+
+          <div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
+            <label style="font-size:10px;color:var(--text3)">Nº FVS</label>
+            <select id="rnc-fvs" onchange="_relNcFiltrar()"
+              style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:5px 8px">
+              <option value="">Todas</option>
+              ${fvsCods.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
+            <label style="font-size:10px;color:var(--text3)">Serviço</label>
+            <select id="rnc-servico" onchange="_relNcFiltrar()"
+              style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:5px 8px">
+              <option value="">Todos</option>
+              ${servicos.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
+            <label style="font-size:10px;color:var(--text3)">Local</label>
+            <input id="rnc-local" oninput="_relNcFiltrar()" placeholder="Buscar local…"
+              style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:5px 8px">
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
+            <label style="font-size:10px;color:var(--text3)">Status</label>
+            <select id="rnc-status" onchange="_relNcFiltrar()"
+              style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:5px 8px">
+              <option value="">Todas</option>
+              <option value="aberta">Abertas</option>
+              <option value="atrasada">Atrasadas</option>
+              <option value="encerrada">Corrigidas</option>
+            </select>
+          </div>
+
+          <button onclick="_relNcLimpar()"
+            style="font-size:11px;padding:5px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap">
+            Limpar filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)" id="rel-nc-count">—</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap">Nº FVS</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase">Serviço</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase">Item</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase">Local</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase">Descrição</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap">Responsável</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap">Prazo</th>
+                <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody id="rel-nc-tbody"></tbody>
+          </table>
+        </div>
+        <div id="rel-nc-empty" style="display:none;text-align:center;padding:32px;color:var(--text3);font-size:12px">
+          Nenhuma NC encontrada para os filtros aplicados
+        </div>
+      </div>
+    `;
+
+    _relNcFiltrar();
+
+  } catch (error) {
+    console.error('Erro ao carregar relatório NC:', error);
+    m.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">Erro ao carregar dados</div>`;
+  }
+}
+
+function _relNcFiltrar() {
+  const fvsFiltro     = (document.getElementById('rnc-fvs')?.value     || '').trim().toLowerCase();
+  const servicoFiltro = (document.getElementById('rnc-servico')?.value  || '').trim().toLowerCase();
+  const localFiltro   = (document.getElementById('rnc-local')?.value    || '').trim().toLowerCase();
+  const statusFiltro  = (document.getElementById('rnc-status')?.value   || '').trim();
+
+  const resultado = _relNcDados.filter(r => {
+    if (fvsFiltro     && !r.fvsCod.toLowerCase().includes(fvsFiltro))         return false;
+    if (servicoFiltro && !r.fvsServico.toLowerCase().includes(servicoFiltro)) return false;
+    if (localFiltro   && !(r.local || '').toLowerCase().includes(localFiltro)) return false;
+    if (statusFiltro === 'aberta'    && (r.status !== 'aberta' || r.atrasada)) return false;
+    if (statusFiltro === 'atrasada'  && !r.atrasada)                           return false;
+    if (statusFiltro === 'encerrada' && r.status !== 'encerrada')              return false;
+    return true;
+  });
+
+  // KPIs
+  const total     = resultado.length;
+  const abertas   = resultado.filter(r => r.status === 'aberta' && !r.atrasada).length;
+  const atrasadas = resultado.filter(r => r.atrasada).length;
+  const corrigidas= resultado.filter(r => r.status === 'encerrada').length;
+
+  const kpiBox = document.getElementById('rel-nc-kpis');
+  if (kpiBox) kpiBox.innerHTML = [
+    { label:'Total',      val: total,      cor:'var(--text)',  bg:'var(--bg2)', bd:'var(--border)' },
+    { label:'Abertas',    val: abertas,    cor:'#fbbf24',     bg:'rgba(251,191,36,.08)',  bd:'#854d0e' },
+    { label:'Atrasadas',  val: atrasadas,  cor:'#f87171',     bg:'rgba(248,113,113,.08)', bd:'#991b1b' },
+    { label:'Corrigidas', val: corrigidas, cor:'#4ade80',     bg:'rgba(74,222,128,.08)',  bd:'#166534' },
+  ].map(k => `
+    <div style="background:${k.bg};border:1px solid ${k.bd};border-radius:var(--radius-lg);padding:12px 20px;min-width:110px">
+      <div style="font-size:22px;font-weight:700;color:${k.cor};font-family:var(--font-cond)">${k.val}</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;margin-top:2px">${k.label}</div>
+    </div>`).join('');
+
+  // Contagem
+  const countEl = document.getElementById('rel-nc-count');
+  if (countEl) countEl.textContent = `${total} não conformidade${total !== 1 ? 's' : ''}`;
+
+  // Tabela
+  const tbody = document.getElementById('rel-nc-tbody');
+  const empty = document.getElementById('rel-nc-empty');
+  if (!tbody) return;
+
+  if (!resultado.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  const tipoLabels = { mao_obra:'M.O.', material:'Material', metodo:'Método', meio_ambiente:'Ambiente', projeto:'Projeto', informacao:'Informação', maquinario:'Maquinário' };
+
+  tbody.innerHTML = resultado.map((r, idx) => {
+    const rc = r.status === 'encerrada';
+    const bgRow = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)';
+    let badgeBg, badgeColor, badgeBorder, badgeLabel;
+    if (rc)          { badgeBg='rgba(74,222,128,.1)'; badgeColor='#4ade80'; badgeBorder='#166534'; badgeLabel='CORRIGIDA'; }
+    else if (r.atrasada) { badgeBg='rgba(248,113,113,.1)'; badgeColor='#f87171'; badgeBorder='#991b1b'; badgeLabel='ATRASADA'; }
+    else             { badgeBg='rgba(251,191,36,.1)';  badgeColor='#fbbf24'; badgeBorder='#854d0e'; badgeLabel='ABERTA'; }
+
+    const prazoStr = r.prazoDate
+      ? `<span style="color:${r.atrasada && !rc ? '#f87171' : 'var(--text2)'}">${r.prazoDate.toLocaleDateString('pt-BR')}</span>`
+      : '<span style="color:var(--text3)">—</span>';
+
+    // Localização resumida (pega só a última parte)
+    const localCurto = (r.local || '—').split(' / ').pop();
+
+    return `<tr style="background:${bgRow};border-bottom:1px solid var(--border)">
+      <td style="padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--accent);white-space:nowrap">${r.fvsCod}</td>
+      <td style="padding:8px 12px;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.fvsServico}">${r.fvsServico}</td>
+      <td style="padding:8px 12px;color:var(--text2);white-space:nowrap">${r.criterio_item || '—'}</td>
+      <td style="padding:8px 12px;color:var(--text3);white-space:nowrap" title="${r.local || ''}">${localCurto}</td>
+      <td style="padding:8px 12px;color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.descricao||'').replace(/"/g,'&quot;')}">${r.descricao || '—'}</td>
+      <td style="padding:8px 12px;color:var(--text2);white-space:nowrap">${r.respNome.split(' ')[0]}</td>
+      <td style="padding:8px 12px;white-space:nowrap">${prazoStr}</td>
+      <td style="padding:8px 12px;text-align:center">
+        <span style="font-size:9px;font-family:var(--font-mono);font-weight:700;padding:2px 7px;border-radius:6px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeBorder};letter-spacing:.4px">${badgeLabel}</span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function _relNcLimpar() {
+  const ids = ['rnc-fvs','rnc-servico','rnc-status'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const local = document.getElementById('rnc-local');
+  if (local) local.value = '';
+  _relNcFiltrar();
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 function renderConsultas(m) {
   m.innerHTML = `
