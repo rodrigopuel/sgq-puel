@@ -1572,14 +1572,10 @@ function abrirModalNovaFVS() {
             <input type="text" id="fvs-engenheiro" placeholder="Nome do engenheiro responsável">
           </div>
           <div class="field">
-            <label>LOCAIS A INSPECIONAR</label>
-            <div id="locais-container">
-              <div class="local-item" style="display:flex;gap:8px;margin-bottom:8px">
-                <input type="text" class="local-input" placeholder="Ex: Pavimento 1" style="flex:1">
-                <button class="btn btn-ghost btn-xs" onclick="removerLocal(this)" style="display:none">Remover</button>
-              </div>
+            <label>LOCAIS A INSPECIONAR <span id="fvs-locais-count" style="font-weight:400;color:var(--text3);font-size:11px;margin-left:6px">0 selecionados</span></label>
+            <div id="locais-container" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--bg2)">
+              <div style="color:var(--text3);font-size:12px">Carregando locais...</div>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="adicionarLocal()" style="margin-top:8px">+ Adicionar local de verificação</button>
           </div>
         </div>
         <div class="modal-footer">
@@ -1624,7 +1620,11 @@ async function carregarDadosModalNovaFVS() {
         `<option value="${template.id}">${template.servico} - ${template.revisao_atual || 'Rev. 00'}</option>`
       ).join('');
 
-      
+    // Carregar locais cadastrados para a obra
+    const locais = obraSelecionadaId ? await client.getLocais(obraSelecionadaId) : [];
+    const container = document.getElementById('locais-container');
+    if (container) container.innerHTML = renderLocaisSelectorFVS(locais);
+
   } catch (error) {
     console.error('Erro ao carregar dados do modal:', error);
     toast('Erro ao carregar dados', 'error');
@@ -1651,38 +1651,105 @@ async function carregarDadosTemplateFVS() {
   }
 }
 
-function adicionarLocal() {
-  const container = document.getElementById('locais-container');
-  const localItem = document.createElement('div');
-  localItem.className = 'local-item';
-  localItem.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
-  localItem.innerHTML = `
-    <input type="text" class="local-input" placeholder="Ex: Pavimento 2" style="flex:1">
-    <button class="btn btn-ghost btn-xs" onclick="removerLocal(this)">Remover</button>
-  `;
-  container.appendChild(localItem);
-  
-  // Mostrar botão remover no primeiro item se agora tiver mais de um
-  const items = container.querySelectorAll('.local-item');
-  if (items.length > 1) {
-    items[0].querySelector('button').style.display = 'block';
-  }
+function renderLocaisSelectorFVS(locais) {
+  if (!locais.length) return `<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Nenhum local cadastrado para esta obra.<br>Acesse <strong>Cadastros → Locais</strong> para adicionar.</div>`;
+
+  // Monta path string e agrupa hierarquicamente
+  const toPath = l => l.tipo === 'interno'
+    ? [l.torre, 'Interno', l.pavimento, l.setor ? 'Setor ' + l.setor : '', l.unidade].filter(Boolean).join(' / ')
+    : [l.torre, 'Externo', l.fachada].filter(Boolean).join(' / ');
+
+  const tree = {};
+  locais.forEach(l => {
+    const torre = l.torre || '—';
+    const tipo  = l.tipo  || '—';
+    if (!tree[torre]) tree[torre] = {};
+    if (!tree[torre][tipo]) tree[torre][tipo] = { interno: {}, externo: [] };
+    if (tipo === 'interno') {
+      const pav = l.pavimento || '—';
+      const set = l.setor     || '—';
+      if (!tree[torre][tipo].interno[pav]) tree[torre][tipo].interno[pav] = {};
+      if (!tree[torre][tipo].interno[pav][set]) tree[torre][tipo].interno[pav][set] = [];
+      tree[torre][tipo].interno[pav][set].push({ path: toPath(l), id: l.id });
+    } else {
+      tree[torre][tipo].externo.push({ path: toPath(l), id: l.id });
+    }
+  });
+
+  const btnTodos = (dataAttr, val, label='Todos') =>
+    `<button type="button" onclick="fvsLocaisToggleGroup('${dataAttr}','${val.replace(/'/g,"\\'")}',true)"
+      style="font-size:10px;padding:1px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;margin-left:6px">${label}</button>`;
+
+  const chk = (path, dataAttrs) => {
+    const attrs = Object.entries(dataAttrs).map(([k,v])=>`data-${k}="${v.replace(/"/g,'&quot;')}"`).join(' ');
+    return `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0">
+      <input type="checkbox" class="fvs-local-chk" value="${path.replace(/"/g,'&quot;')}" ${attrs} onchange="fvsLocaisAtualizarContador()" style="width:14px;height:14px;accent-color:var(--accent)">
+      <span style="font-size:12px;color:var(--text2)">${path.split(' / ').pop()}</span>
+    </label>`;
+  };
+
+  let html = '';
+  Object.entries(tree).forEach(([torre, tipos]) => {
+    const gTorre = `torre-${torre}`;
+    html += `<div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">
+        🏗 Torre ${torre}
+        ${btnTodos('g-torre', gTorre, 'Todos')}
+      </div>`;
+
+    Object.entries(tipos).forEach(([tipo, dados]) => {
+      const gTipo = `${gTorre}-${tipo}`;
+      html += `<div style="margin-left:14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">
+          ${tipo === 'interno' ? '🏠 Interno' : '🌳 Externo'}
+          ${btnTodos('g-tipo', gTipo)}
+        </div>`;
+
+      if (tipo === 'interno') {
+        Object.entries(dados.interno).forEach(([pav, setores]) => {
+          const gPav = `${gTipo}-${pav}`;
+          html += `<div style="margin-left:14px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;font-size:12px;color:var(--text2);margin-bottom:3px">
+              📐 ${pav} ${btnTodos('g-pav', gPav)}
+            </div>`;
+          Object.entries(setores).forEach(([setor, items]) => {
+            const gSetor = `${gPav}-${setor}`;
+            html += `<div style="margin-left:14px;margin-bottom:4px">
+              <div style="display:flex;align-items:center;font-size:11px;color:var(--text3);margin-bottom:2px">
+                Setor ${setor} ${btnTodos('g-setor', gSetor)}
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin-left:10px">
+                ${items.map(i => chk(i.path, {'g-torre':gTorre,'g-tipo':gTipo,'g-pav':gPav,'g-setor':gSetor})).join('')}
+              </div>
+            </div>`;
+          });
+          html += `</div>`;
+        });
+      } else {
+        html += `<div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin-left:14px">
+          ${dados.externo.map(i => chk(i.path, {'g-torre':gTorre,'g-tipo':gTipo})).join('')}
+        </div>`;
+      }
+
+      html += `</div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  return html;
 }
 
-function removerLocal(button) {
-  const container = document.getElementById('locais-container');
-  const item = button.parentElement;
-  
-  // Não remover se for o único item
-  if (container.querySelectorAll('.local-item').length > 1) {
-    item.remove();
-    
-    // Esconder botão remover no primeiro item se só tiver um item
-    const items = container.querySelectorAll('.local-item');
-    if (items.length === 1) {
-      items[0].querySelector('button').style.display = 'none';
-    }
-  }
+function fvsLocaisToggleGroup(dataAttr, val, checked) {
+  document.querySelectorAll(`.fvs-local-chk[data-${dataAttr}="${val}"]`)
+    .forEach(chk => { chk.checked = checked; });
+  fvsLocaisAtualizarContador();
+}
+
+function fvsLocaisAtualizarContador() {
+  const total = document.querySelectorAll('.fvs-local-chk:checked').length;
+  const el = document.getElementById('fvs-locais-count');
+  if (el) el.textContent = total === 0 ? '0 selecionados' : `${total} selecionado${total!==1?'s':''}`;
 }
 
 async function criarNovaFVS() {
@@ -1690,11 +1757,10 @@ async function criarNovaFVS() {
     const obraId = document.getElementById('fvs-obra').value;
     const templateId = document.getElementById('fvs-template').value;
     
-    // Obter locais dos inputs
-    const localInputs = document.querySelectorAll('.local-input');
-    const locaisArray = Array.from(localInputs)
-      .map(input => input.value.trim())
-      .filter(local => local !== '');
+    // Obter locais selecionados via checkboxes
+    const locaisArray = Array.from(document.querySelectorAll('.fvs-local-chk:checked'))
+      .map(chk => chk.value)
+      .filter(Boolean);
     
     // Validação
     if (!obraId || !templateId) {
