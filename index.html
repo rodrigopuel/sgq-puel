@@ -632,8 +632,8 @@ function mostrarTela(id){document.querySelectorAll('.screen').forEach(s=>s.class
 const SECOES={dashboard:'Dashboard',alertas:'Alertas',obras:'Obras',fvs:'FVS',fvm:'FVM','aplicacao-is':'Aplicação IS',templates:'Templates FVS','templates-fvm':'Template FVM',dossie:'Exportar',consultas:'Consultas','rel-nc':'Relatório de NC',consultor:'Consultor IA',locais:'Locais',fornecedores:'Fornecedores',usuarios:'Usuários'};
 
 async function navegar(s){
-  // Exigir seleção de obra para FVS, FVM e Dossiê
-  if (['fvs','fvm','dossie'].includes(s) && !obraSelecionadaId) {
+  // Exigir seleção de obra para FVS, FVM, Dossiê e Relatório NC
+  if (['fvs','fvm','dossie','rel-nc'].includes(s) && !obraSelecionadaId) {
     toast('Selecione uma obra no menu lateral antes de acessar este módulo', 'error');
     return;
   }
@@ -6296,50 +6296,50 @@ async function renderRelatorioNC(m) {
   m.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">Carregando...</div>`;
   try {
     const client = await esperarSupabase();
-    const [todasOcorrencias, fvsList, obras, usuarios] = await Promise.all([
+    const [todasOcorrencias, fvsListAll, obras, usuarios] = await Promise.all([
       client.getOcorrencias(),
       client.getFVS(),
       client.getObras(),
       client.getUsuarios()
     ]);
 
+    // Filtra FVS pela obra selecionada
+    const fvsDaObra = fvsListAll.filter(f => f.obra_id === obraSelecionadaId);
+    const obraAtual = obras.find(o => o.id === obraSelecionadaId);
+    const fvsIdsDaObra = new Set(fvsDaObra.map(f => f.id));
+
     // Monta mapa de lookup
-    const fvsMap  = Object.fromEntries(fvsList.map(f => [f.id, f]));
+    const fvsMap  = Object.fromEntries(fvsListAll.map(f => [f.id, f]));
     const obraMap = Object.fromEntries(obras.map(o => [o.id, o]));
     const userMap = Object.fromEntries(usuarios.map(u => [u.id, u]));
 
+    // Apenas NCs de FVS da obra selecionada
+    const ocorrenciasDaObra = todasOcorrencias.filter(oc => fvsIdsDaObra.has(oc.fvs_id));
+
     // Enriquece ocorrências com dados de FVS e obra
-    _relNcDados = todasOcorrencias.map(oc => {
+    _relNcDados = ocorrenciasDaObra.map(oc => {
       const fvs  = fvsMap[oc.fvs_id]  || {};
-      const obra = obraMap[fvs.obra_id] || {};
       const resp = userMap[oc.responsavel_id] || {};
       const prazoDate = oc.prazo ? new Date(oc.prazo + 'T12:00') : null;
-      // servico: usa o campo da FVS; fallback para criterio_item se vier vazio
-      const fvsServico = fvs.servico || '';
       return {
         ...oc,
-        fvsCod:     fvs.cod      || '—',
-        fvsServico: fvsServico,
-        obraNome:   obra.nome    || '—',
-        respNome:   resp.nome    || oc.responsavel_id || '—',
+        fvsCod:     fvs.cod     || '—',
+        fvsServico: fvs.servico || '',
+        respNome:   resp.nome   || oc.responsavel_id || '—',
         prazoDate,
         atrasada: prazoDate && prazoDate < new Date() && oc.status !== 'encerrada'
       };
     });
 
-    // Opções para dropdowns
-    const fvsCods  = [...new Set(_relNcDados.map(r => r.fvsCod).filter(Boolean))].sort();
-    // Serviços: usa lista completa de FVS para não perder serviços com NCs em FVS cujo campo servico está preenchido
-    const servicos = [...new Set(
-      [..._relNcDados.map(r => r.fvsServico), ...fvsList.map(f => f.servico)]
-        .filter(x => x && x !== '—')
-    )].sort();
+    // Serviços: TODOS os tipos de FVS da obra (independente de ter NCs)
+    const fvsCods  = [...new Set(fvsDaObra.map(f => f.cod).filter(Boolean))].sort();
+    const servicos = [...new Set(fvsDaObra.map(f => f.servico).filter(Boolean))].sort();
 
     m.innerHTML = `
       <div class="page-header">
         <div>
           <div class="page-title">Relatório de NC</div>
-          <div class="page-sub">Não conformidades registradas em todas as FVS</div>
+          <div class="page-sub">${obraAtual ? obraAtual.nome : 'Obra'} · Não conformidades registradas</div>
         </div>
       </div>
 
@@ -6437,7 +6437,7 @@ function _relNcFiltrar() {
 
   const resultado = _relNcDados.filter(r => {
     if (fvsFiltro     && !r.fvsCod.toLowerCase().includes(fvsFiltro))         return false;
-    if (servicoFiltro && !r.fvsServico.toLowerCase().includes(servicoFiltro) && !r.fvsCod.toLowerCase().includes(servicoFiltro)) return false;
+    if (servicoFiltro && !r.fvsServico.toLowerCase().includes(servicoFiltro)) return false;
     if (localFiltro   && !(r.local || '').toLowerCase().includes(localFiltro)) return false;
     if (statusFiltro === 'aberta'    && (r.status !== 'aberta' || r.atrasada)) return false;
     if (statusFiltro === 'atrasada'  && !r.atrasada)                           return false;
