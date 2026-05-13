@@ -1987,12 +1987,23 @@ async function abrirFVS(fvsId) {
               <th class="th-item" style="width:8%;min-width:75px">Método</th>
               <th class="th-item" style="width:8%;min-width:75px">Tolerância</th>
               ${(fvs.locais || []).map(local => {
-                const partes = local.split(' / ');
-                const folha = partes.pop();
-                const contexto = partes.join(' / ');
+                const p = local.split(' / ');
+                let linha1, linha2;
+                if (p[1] === 'Interno' && p.length >= 5) {
+                  // p = [torre, 'Interno', pavimento, 'Setor X', unidade]
+                  linha1 = `${p[0]} / ${p[1]} / ${p[3]}`;
+                  linha2 = `Pav ${p[2]} - ${p[4]}`;
+                } else if (p[1] === 'Externo') {
+                  // p = [torre, 'Externo', fachada]
+                  linha1 = `${p[0]} / ${p[1]}`;
+                  linha2 = p[2] || '';
+                } else {
+                  linha1 = p.slice(0, -1).join(' / ');
+                  linha2 = p[p.length - 1];
+                }
                 return `<th style="width:8%;text-align:center;padding:4px 6px">
-                  ${contexto ? `<div style="font-size:9px;color:var(--text3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;margin:0 auto">${contexto}</div>` : ''}
-                  <div style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap">${folha}</div>
+                  <div style="font-size:9px;color:var(--text3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;margin:0 auto">${linha1}</div>
+                  <div style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap">${linha2}</div>
                 </th>`;
               }).join('')}
             </tr>
