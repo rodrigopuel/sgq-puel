@@ -1379,6 +1379,10 @@ async function renderFVS(m){
       
       <!-- Cards de Resumo / Filtros -->
       <div class="kpi-grid">
+        <div class="kpi-card" id="fvs-kpi-pre" onclick="filtrarFVS('pre-executivo')" style="cursor:pointer;border-top:2px solid #3730a3" title="Filtrar por Pré-executivas">
+          <div class="kpi-number" style="color:#a5b4fc">${preExecutivas.length}</div>
+          <div class="kpi-label">PRÉ-EXECUTIVAS</div>
+        </div>
         <div class="kpi-card k-amber" id="fvs-kpi-andamento" onclick="filtrarFVS('andamento')" style="cursor:pointer" title="Filtrar por Em andamento">
           <div class="kpi-number">${emAndamento.length}</div>
           <div class="kpi-label">EM ANDAMENTO</div>
@@ -1390,10 +1394,6 @@ async function renderFVS(m){
         <div class="kpi-card k-accent" id="fvs-kpi-aprovada" onclick="filtrarFVS('aprovada')" style="cursor:pointer" title="Filtrar por Aprovadas">
           <div class="kpi-number">${aprovadas.length}</div>
           <div class="kpi-label">APROVADAS</div>
-        </div>
-        <div class="kpi-card" id="fvs-kpi-pre" onclick="filtrarFVS('pre-executivo')" style="cursor:pointer;border-top:2px solid #3730a3" title="Filtrar por Pré-executivas">
-          <div class="kpi-number" style="color:#a5b4fc">${preExecutivas.length}</div>
-          <div class="kpi-label">PRÉ-EXECUTIVAS</div>
         </div>
         <div class="kpi-card" id="fvs-kpi-total" onclick="filtrarFVS(null)" style="cursor:pointer" title="Ver todas">
           <div class="kpi-number">${fvsList.length}</div>
