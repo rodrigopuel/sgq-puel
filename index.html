@@ -1046,34 +1046,106 @@ async function renderDashboard(m){
 async function renderAlertas(m){
   try {
     const client = await esperarSupabase();
-    const obras = await client.getObras();
-    const fvsList = await client.getFVS();
-    const todasOcorrencias = await client.getOcorrencias();
+    const agora = new Date();
+    const diasAtras = d => (agora - new Date(d)) / 86400000;
+
+    const [obras, fvsList, todasOcorrencias, fvmList, frcList, aplicacoesIS] = await Promise.all([
+      client.getObras(),
+      client.getFVS(),
+      client.getOcorrencias(),
+      client.getFVM(),
+      client.getFRC(),
+      client.get('aplicacoes_is', {})
+    ]);
 
     fvsList.forEach(f => {
-      f.obraId = f.obra_id;
       f.ocorrencias = todasOcorrencias.filter(o => o.fvs_id === f.id);
     });
 
     const obraSelecionada = obraSelecionadaId ? obras.find(o => o.id === obraSelecionadaId) : null;
     const obrasIds = new Set(obraSelecionada ? [obraSelecionada.id] : obras.filter(o=>o.status==='ativa').map(o=>o.id));
-    const fl = fvsList.filter(f => obrasIds.has(f.obra_id));
+
+    // Aplicações IS por fvs_id
+    const aplPorFvs = {};
+    aplicacoesIS.forEach(a => { aplPorFvs[a.fvs_id] = true; });
 
     const alertas = [];
-    fl.forEach(f => {
+
+    // ── 1. NCs abertas (FVS) ──────────────────────────────────────────────
+    fvsList.filter(f => obrasIds.has(f.obra_id)).forEach(f => {
       const obra = obras.find(o => o.id === f.obra_id);
       (f.ocorrencias||[]).filter(o=>o.status==='aberta').forEach(oc => {
         const prazo = oc.prazo ? new Date(oc.prazo+'T12:00') : null;
-        const atrasada = prazo && prazo < new Date();
-        alertas.push({tipo:atrasada?'nc-at':'nc', p:atrasada?0:1, titulo:`NC ${atrasada?'ATRASADA':'aberta'} — ${oc.criterio_item}`, sub:`${obra?.nome||'—'} · ${f.cod} · ${oc.local}${prazo?' · Prazo: '+prazo.toLocaleDateString('pt-BR'):''}`, fvsId:f.id});
+        const atrasada = prazo && prazo < agora;
+        alertas.push({
+          tipo: atrasada ? 'nc-at' : 'nc',
+          p: atrasada ? 0 : 1,
+          titulo: `NC ${atrasada?'ATRASADA':'aberta'} — ${oc.criterio_item}`,
+          sub: `${obra?.nome||'—'} · ${f.cod} · ${oc.local}${prazo?' · Prazo: '+prazo.toLocaleDateString('pt-BR'):''}`
+        });
       });
     });
+
+    // ── 2. Caminhões FRC em alerta ou reprovados (últimos 15 dias) ────────
+    frcList.filter(frc => obrasIds.has(frc.obra_id)).forEach(frc => {
+      if (!frc.data || diasAtras(frc.data+'T12:00') > 15) return;
+      const obra = obras.find(o => o.id === frc.obra_id);
+      (frc.caminhoes||[]).forEach((c, i) => {
+        const st = _frcStatusCaminhao(c);
+        if (st === 'reprovado') {
+          alertas.push({
+            tipo: 'frc-rep', p: 1,
+            titulo: `Concreto REPROVADO — ${frc.cod} · Caminhão ${c.numero||i+1}`,
+            sub: `${obra?.nome||'—'} · ${frc.elemento||'—'} · fck ${c.fck||'?'} MPa · CP-2: ${c.cps?.[1]?.resultado||'?'} MPa`
+          });
+        } else if (st === 'alerta') {
+          alertas.push({
+            tipo: 'frc-alt', p: 2,
+            titulo: `Concreto em ALERTA — ${frc.cod} · Caminhão ${c.numero||i+1}`,
+            sub: `${obra?.nome||'—'} · ${frc.elemento||'—'} · fck ${c.fck||'?'} MPa · aguardando CP definitivo`
+          });
+        }
+      });
+    });
+
+    // ── 3. FVM reprovadas (últimos 15 dias) ───────────────────────────────
+    fvmList.filter(f => obrasIds.has(f.obra_id) && f.resultado==='reprovado' && f.status==='encerrada').forEach(fvm => {
+      if (!fvm.fechamento || diasAtras(fvm.fechamento) > 15) return;
+      const obra = obras.find(o => o.id === fvm.obra_id);
+      alertas.push({
+        tipo: 'fvm-rep', p: 1,
+        titulo: `Material REPROVADO — ${fvm.cod}`,
+        sub: `${obra?.nome||'—'} · ${fvm.servico||'—'} · Encerrada em ${new Date(fvm.fechamento).toLocaleDateString('pt-BR')}`
+      });
+    });
+
+    // ── 4. FVS encerradas sem IS aplicada há mais de 10 dias ─────────────
+    fvsList.filter(f => obrasIds.has(f.obra_id) && f.status==='encerrada' && f.fechamento).forEach(f => {
+      if (diasAtras(f.fechamento) < 10) return; // ainda no prazo
+      if (aplPorFvs[f.id]) return;               // IS já aplicada
+      const obra = obras.find(o => o.id === f.obra_id);
+      const dias = Math.floor(diasAtras(f.fechamento));
+      alertas.push({
+        tipo: 'is-pend', p: 2,
+        titulo: `IS não aplicada — ${f.cod}`,
+        sub: `${obra?.nome||'—'} · ${f.servico||'—'} · Liberada há ${dias} dias sem registro de aplicação IS`
+      });
+    });
+
     alertas.sort((a,b)=>a.p-b.p);
+
+    const iconePor = {
+      'nc-at':'⚠', 'nc':'⚠', 'frc-rep':'🚨', 'frc-alt':'⚠', 'fvm-rep':'🚫', 'is-pend':'⏱'
+    };
+    const classePor = {
+      'nc-at':'alerta-nc', 'nc':'alerta-nc', 'frc-rep':'alerta-nc', 'frc-alt':'alerta-nc',
+      'fvm-rep':'alerta-nc', 'is-pend':'alerta-pend'
+    };
 
     m.innerHTML=`
       <div class="page-header"><div><div class="page-title">Alertas</div><div class="page-sub">${alertas.length} alerta${alertas.length!==1?'s':''} ativo${alertas.length!==1?'s':''}${obraSelecionada?` · ${obraSelecionada.nome}`:''}</div></div></div>
-      ${alertas.length?alertas.map(a=>`<div class="alerta-card ${a.tipo.startsWith('nc')?'alerta-nc':'alerta-pend'}">
-        <div class="alerta-icon">${a.tipo.startsWith('nc')?'⚠':'⏱'}</div>
+      ${alertas.length?alertas.map(a=>`<div class="alerta-card ${classePor[a.tipo]||'alerta-pend'}">
+        <div class="alerta-icon">${iconePor[a.tipo]||'⏱'}</div>
         <div><div class="alerta-titulo">${a.titulo}</div><div class="alerta-sub">${a.sub}</div></div>
       </div>`).join('')
       :`<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">Nenhum alerta ativo</div><div class="empty-desc">Todas as não conformidades estão tratadas.</div></div>`}
