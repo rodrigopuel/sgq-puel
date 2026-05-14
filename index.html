@@ -1023,8 +1023,8 @@ async function renderDashboard(m){
           const obraFvs = obras.find(o => o.id === fvs.obra_id);
           return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
             <div style="min-width:180px;max-width:180px">
-              <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fvs.cod}</div>
-              <div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fvs.servico}${obraFvs ? ` · ${obraFvs.nome}` : ''}</div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fvs.servico}${obraFvs ? ` · ${obraFvs.nome}` : ''}</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fvs.cod}</div>
             </div>
             <div style="flex:1;background:var(--bg3);border-radius:3px;height:10px;overflow:visible;position:relative">
               <div style="width:${pct}%;background:${cor};height:100%;border-radius:3px;position:relative;transition:width .3s">
