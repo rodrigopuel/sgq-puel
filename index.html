@@ -10696,8 +10696,8 @@ function _frcCaminhaoHTML(c, idx) {
       ${[
         ['NF / Guia','frc-nf-'+idx,'text',c.nf||'',''],
         ['Lacre da betoneira','frc-lacre-'+idx,'text',c.lacre||'',''],
-        ['Volume (m³)','frc-vol-'+idx,'number',c.volume||'',''],
-        ['fck solicitado (MPa)','frc-fck-'+idx,'text',c.fck ? parseFloat(c.fck).toFixed(1) : '','oninput="this.value=this.value.replace(/[^0-9.,]/g,\'\').replace(\',\',\'.\')" onblur="if(this.value){this.value=parseFloat(this.value).toFixed(1)};_frcAtualizarStatus('+idx+')"'],
+        ['Volume (m³)','frc-vol-'+idx,'text',c.volume ? parseFloat(String(c.volume).replace(',','.')) .toFixed(1).replace('.',',') : '','oninput="this.value=this.value.replace(/[^0-9,]/g,\'\')" onblur="if(this.value){const v=parseFloat(this.value.replace(\',\',\'.\'));if(!isNaN(v))this.value=v.toFixed(1).replace(\'.\',\',\')}"'],
+        ['fck solicitado (MPa)','frc-fck-'+idx,'number',c.fck||'','onchange="_frcAtualizarStatus('+idx+')"'],
         ['Slump solicitado (mm)','frc-sls-'+idx,'number',c.slump_sol||'',''],
         ['Slump medido (mm)','frc-slm-'+idx,'number',c.slump_med||'',''],
       ].map(([lbl,id,tp,val,extra])=>`
