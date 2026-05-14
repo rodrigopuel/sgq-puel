@@ -10826,6 +10826,7 @@ function _frcRenderForm(m, usuarios, obra) {
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="renderFRC(document.getElementById('main-content'))">← Voltar</button>
         ${frc.id ? `<button class="btn btn-ghost" onclick="_frcImprimirPDF()">📄 PDF</button>` : ''}
+        <button class="btn btn-ghost" onclick="_frcSalvarRascunho()">📝 Salvar rascunho</button>
         <button class="btn btn-primary" onclick="_frcSalvar()">💾 Salvar</button>
       </div>
     </div>
@@ -11106,15 +11107,11 @@ function _frcRemoverCaminhao(idx) {
 
 // ─── SAVE ─────────────────────────────────────────────────────────────────────
 
-async function _frcSalvar() {
+function _frcColetarDados() {
   const frc = _frcDados;
   frc.data           = document.getElementById('frc-data')?.value || '';
   frc.elemento       = document.getElementById('frc-elemento')?.value || '';
   frc.responsavel_id = document.getElementById('frc-responsavel')?.value || '';
-
-  if (!frc.data || !frc.elemento || !frc.responsavel_id) {
-    toast('Preencha data, elemento e responsável', 'error'); return;
-  }
 
   (frc.caminhoes || []).forEach((c, idx) => {
     c.nf           = document.getElementById('frc-nf-'+idx)?.value || '';
@@ -11136,8 +11133,43 @@ async function _frcSalvar() {
       c.cps[ci].resultado = document.getElementById(`frc-cp${ci}-res-${idx}`)?.value || '';
     });
   });
+}
 
-  const allDone = (frc.caminhoes||[]).length > 0 && (frc.caminhoes||[]).every(c => {
+function _frcValidar() {
+  const frc = _frcDados;
+  if (!frc.data || !frc.elemento || !frc.responsavel_id) {
+    toast('Preencha data, elemento e responsável', 'error');
+    return false;
+  }
+  if (!frc.caminhoes || frc.caminhoes.length === 0) {
+    toast('Adicione pelo menos um caminhão', 'error');
+    return false;
+  }
+  const campoLabel = {
+    nf:'NF / Guia', lacre:'Lacre da betoneira', volume:'Volume (m³)',
+    fck:'fck solicitado', slump_sol:'Slump solicitado', slump_med:'Slump medido',
+    saida_usina:'Saída da usina', chegada_obra:'Chegada na obra',
+    fim_conc:'Fim da concretagem', local_uso:'Local de uso'
+  };
+  for (let i = 0; i < frc.caminhoes.length; i++) {
+    const c = frc.caminhoes[i];
+    for (const [campo, label] of Object.entries(campoLabel)) {
+      if (!c[campo]) {
+        toast(`Caminhão ${i+1}: preencha "${label}"`, 'error');
+        // Abre o accordion do caminhão
+        const body = document.getElementById('frc-c-body-'+i);
+        if (body) body.style.display = 'grid';
+        document.getElementById('frc-nf-'+i)?.scrollIntoView({ behavior:'smooth', block:'center' });
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+async function _frcPersistir(rascunho = false) {
+  const frc = _frcDados;
+  const allDone = !rascunho && (frc.caminhoes||[]).length > 0 && (frc.caminhoes||[]).every(c => {
     const st = _frcStatusCaminhao(c);
     return st === 'aprovado' || st === 'reprovado';
   });
@@ -11156,20 +11188,30 @@ async function _frcSalvar() {
       planta_tipo:    frc.planta_tipo || null,
       caminhoes:      frc.caminhoes || []
     };
-
     if (frc.id) {
       await client.updateFRC(frc.id, payload);
-      toast('FRC atualizada com sucesso!', 'success');
+      toast(rascunho ? 'Rascunho salvo!' : 'FRC atualizada com sucesso!', 'success');
     } else {
       const nova = await client.saveFRC(payload);
       _frcDados.id = nova.id;
-      toast('FRC salva com sucesso!', 'success');
+      toast(rascunho ? 'Rascunho salvo!' : 'FRC salva com sucesso!', 'success');
     }
-    setTimeout(() => renderFRC(document.getElementById('main-content')), 1200);
+    if (!rascunho) setTimeout(() => renderFRC(document.getElementById('main-content')), 1200);
   } catch(e) {
     console.error(e);
     toast('Erro ao salvar: ' + e.message, 'error');
   }
+}
+
+async function _frcSalvar() {
+  _frcColetarDados();
+  if (!_frcValidar()) return;
+  await _frcPersistir(false);
+}
+
+async function _frcSalvarRascunho() {
+  _frcColetarDados();
+  await _frcPersistir(true);
 }
 
 // ─── PLANT + CANVAS ───────────────────────────────────────────────────────────
