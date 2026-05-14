@@ -477,6 +477,23 @@ class SupabaseClient {
       }
     }
   }
+
+  // FRC — Ficha de Rastreabilidade de Concreto
+  async getFRC(filtros = {}) {
+    return this.get('frc', filtros);
+  }
+  async getOneFRC(id) {
+    return this.getById('frc', id);
+  }
+  async saveFRC(dados) {
+    return this.insert('frc', dados);
+  }
+  async updateFRC(id, dados) {
+    return this.update('frc', id, dados);
+  }
+  async deleteFRC(id) {
+    return this.remove('frc', id);
+  }
 }
 
 // Instância global do cliente Supabase
