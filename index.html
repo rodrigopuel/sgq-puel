@@ -1067,11 +1067,6 @@ async function renderAlertas(m){
         const atrasada = prazo && prazo < new Date();
         alertas.push({tipo:atrasada?'nc-at':'nc', p:atrasada?0:1, titulo:`NC ${atrasada?'ATRASADA':'aberta'} — ${oc.criterio_item}`, sub:`${obra?.nome||'—'} · ${f.cod} · ${oc.local}${prazo?' · Prazo: '+prazo.toLocaleDateString('pt-BR'):''}`, fvsId:f.id});
       });
-      if(f.status==='andamento'){
-        const dias=Math.floor((Date.now()-new Date(f.abertura))/86400000);
-        const s=calcStats(f);
-        if(dias>=3&&s.blank>0) alertas.push({tipo:'pend',p:2,titulo:`FVS com ${s.blank} célula${s.blank!==1?'s':''} em branco há ${dias} dias`,sub:`${obra?.nome||'—'} · ${f.cod} · ${f.servico}`});
-      }
     });
     alertas.sort((a,b)=>a.p-b.p);
 
