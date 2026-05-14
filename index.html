@@ -10491,8 +10491,9 @@ function _frcRenderCard(frc) {
   const alertas    = caminhoes.filter(c => _frcStatusCaminhao(c) === 'alerta').length;
   const pendentes  = caminhoes.filter(c => _frcStatusCaminhao(c) === 'pendente').length;
   const temReprovado = reprovados > 0;
-  const borderCor = temReprovado ? '#ef4444' : alerta ? '#f97316' : frc.status==='concluida' ? '#22c55e' : '#f59e0b';
-  const borderBd  = temReprovado ? 'rgba(239,68,68,.45)' : alerta ? 'rgba(249,115,22,.4)' : 'var(--border)';
+  const todosAprovados = nCam > 0 && aprovados === nCam;
+  const borderCor = temReprovado ? '#ef4444' : alerta ? '#f97316' : todosAprovados ? '#22c55e' : frc.status==='concluida' ? '#22c55e' : '#f59e0b';
+  const borderBd  = temReprovado ? 'rgba(239,68,68,.45)' : alerta ? 'rgba(249,115,22,.4)' : todosAprovados ? 'rgba(74,222,128,.35)' : 'var(--border)';
   const stBg = frc.status==='concluida' ? 'rgba(74,222,128,.1)' : 'rgba(245,158,11,.1)';
   const stCor = frc.status==='concluida' ? '#4ade80' : '#f59e0b';
   const stBd = frc.status==='concluida' ? 'rgba(74,222,128,.3)' : 'rgba(245,158,11,.3)';
@@ -10505,7 +10506,7 @@ function _frcRenderCard(frc) {
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${frc.cod||'—'}</span>
           <span style="font-size:11px;color:var(--text3)">${frc.data ? new Date(frc.data+'T12:00').toLocaleDateString('pt-BR') : '—'}</span>
-          ${temReprovado ? `<span style="font-size:10px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);padding:2px 8px;border-radius:20px;font-weight:700">🚨 REPROVADO</span>` : alerta ? `<span style="font-size:10px;background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3);padding:2px 8px;border-radius:20px;font-weight:700">⚠ ALERTA</span>` : ''}
+          ${temReprovado ? `<span style="font-size:10px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);padding:2px 8px;border-radius:20px;font-weight:700">🚨 REPROVADO</span>` : alerta ? `<span style="font-size:10px;background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3);padding:2px 8px;border-radius:20px;font-weight:700">⚠ ALERTA</span>` : todosAprovados ? `<span style="font-size:10px;background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.35);padding:2px 8px;border-radius:20px;font-weight:700">✔ APROVADO</span>` : ''}
         </div>
         <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">${frc.elemento||'—'}</div>
         <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text3)">
@@ -10567,10 +10568,12 @@ async function renderFRC(m) {
     _frcCache = { lista, userMap, obra };
     _frcFiltro = { de: '', ate: '', status: 'todos' };
 
-    const total     = lista.length;
-    const abertas   = lista.filter(f => f.status === 'aberta').length;
-    const concluidas= lista.filter(f => f.status === 'concluida').length;
-    const emAlerta  = lista.filter(f => _frcTemAlerta(f)).length;
+    const total      = lista.length;
+    const abertas    = lista.filter(f => f.status === 'aberta').length;
+    const concluidas = lista.filter(f => f.status === 'concluida').length;
+    const emAlerta   = lista.filter(f => _frcTemAlerta(f)).length;
+    const aprovadas  = lista.filter(f => _frcStatusGeral(f) === 'aprovado').length;
+    const reprovadas = lista.filter(f => _frcStatusGeral(f) === 'reprovado').length;
 
     const chipStyle = (ativo) => ativo
       ? 'background:var(--accent);color:#fff;border:1px solid var(--accent)'
@@ -10587,10 +10590,12 @@ async function renderFRC(m) {
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
         ${[
-          {label:'Total',val:total,cor:'var(--text)',bg:'var(--bg2)',bd:'var(--border)'},
-          {label:'Abertas',val:abertas,cor:'#f59e0b',bg:'rgba(245,158,11,.08)',bd:'rgba(245,158,11,.3)'},
-          {label:'Em alerta',val:emAlerta,cor:'#f87171',bg:'rgba(248,113,113,.08)',bd:'rgba(248,113,113,.3)'},
-          {label:'Concluídas',val:concluidas,cor:'#4ade80',bg:'rgba(74,222,128,.08)',bd:'rgba(74,222,128,.3)'},
+          {label:'Aprovadas',val:aprovadas, cor:'#4ade80',bg:'rgba(74,222,128,.08)', bd:'rgba(74,222,128,.3)'},
+          {label:'Em alerta',val:emAlerta, cor:'#fb923c',bg:'rgba(249,115,22,.08)',  bd:'rgba(249,115,22,.3)'},
+          {label:'Reprovadas',val:reprovadas,cor:'#f87171',bg:'rgba(248,113,113,.08)',bd:'rgba(248,113,113,.3)'},
+          {label:'Abertas',   val:abertas,  cor:'#f59e0b',bg:'rgba(245,158,11,.08)', bd:'rgba(245,158,11,.3)'},
+          {label:'Concluídas',val:concluidas,cor:'#94a3b8',bg:'var(--bg2)',          bd:'var(--border)'},
+          {label:'Total',     val:total,    cor:'var(--text)',bg:'var(--bg2)',        bd:'var(--border)'},
         ].map(k=>`
           <div style="background:${k.bg};border:1px solid ${k.bd};border-radius:var(--radius-lg);padding:12px 20px;min-width:110px">
             <div style="font-size:22px;font-weight:700;color:${k.cor};font-family:var(--font-cond)">${k.val}</div>
