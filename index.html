@@ -10485,6 +10485,7 @@ function _frcStatusGeral(frc) {
 function _frcRenderCard(frc) {
   const resp = _frcCache.userMap[frc.responsavel_id];
   const caminhoes = frc.caminhoes || [];
+  const nCam = caminhoes.length;
   const alerta = _frcTemAlerta(frc);
   const aprovados  = caminhoes.filter(c => _frcStatusCaminhao(c) === 'aprovado').length;
   const reprovados = caminhoes.filter(c => _frcStatusCaminhao(c) === 'reprovado').length;
@@ -10498,7 +10499,6 @@ function _frcRenderCard(frc) {
   const stCor = frc.status==='concluida' ? '#4ade80' : '#f59e0b';
   const stBd = frc.status==='concluida' ? 'rgba(74,222,128,.3)' : 'rgba(245,158,11,.3)';
   const stLabel = frc.status==='concluida' ? 'CONCLUÍDA' : 'ABERTA';
-  const nCam = caminhoes.length;
   return `
   <div style="background:var(--bg2);border:1px solid ${borderBd};border-left:3px solid ${borderCor};border-radius:var(--radius-lg);padding:16px 20px;cursor:pointer" onclick="_frcAbrirForm('${frc.id}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
