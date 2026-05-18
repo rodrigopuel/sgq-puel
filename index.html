@@ -7419,7 +7419,7 @@ async function renderRelatorioFVS(m) {
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
           <div class="field" style="margin:0;min-width:180px;flex:1">
             <label>Local / Unidade</label>
-            <button id="rfvs-loc-btn" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:6px;font-weight:400;color:var(--text2)" onclick="_relFvsToggleLocalPanel()">
+            <button id="rfvs-loc-btn" onclick="_relFvsToggleLocalPanel()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:13px;text-align:left;display:flex;align-items:center;gap:6px;font-weight:400;transition:border-color .15s;cursor:pointer">
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2C5.2 2 3 4.2 3 7c0 3.9 5 9 5 9s5-5.1 5-9c0-2.8-2.2-5-5-5zm0 6.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>
               <span id="rfvs-loc-label">Todos os locais</span>
             </button>
