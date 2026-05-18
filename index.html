@@ -7026,9 +7026,9 @@ async function renderRelatorioNC(m) {
               <input type="checkbox" class="rnc-torre-chk" value="${t}" onchange="_rncTorreChange()" style="width:13px;height:13px;accent-color:var(--accent);flex-shrink:0"> ${t}
             </label>`).join(''))}
 
-          ${_rncDropdown('rnc-pav','Pavimento', '<div id="rnc-pav-options" style="padding:6px 0"><div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione uma torre primeiro</div></div>', false)}
+          ${_rncDropdown('rnc-pav','Pavimento', '<div id="rnc-pav-options" style="padding:6px 0"><div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione uma torre primeiro</div></div>', true)}
 
-          ${_rncDropdown('rnc-unid','Unidade', '<div id="rnc-unid-options" style="padding:6px 0"><div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione um pavimento primeiro</div></div>', false)}
+          ${_rncDropdown('rnc-unid','Unidade', '<div id="rnc-unid-options" style="padding:6px 0"><div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione um pavimento primeiro</div></div>', true)}
 
           <div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
             <label style="font-size:10px;color:var(--text3)">Status</label>
