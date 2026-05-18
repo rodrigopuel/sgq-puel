@@ -17,6 +17,19 @@
   --font:'Barlow',sans-serif;--font-cond:'Barlow Condensed',sans-serif;--font-mono:'JetBrains Mono',monospace;
   --radius:6px;--radius-lg:10px;
 }
+html.light{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#e8eaed;--bg4:#dde1e7;
+  --border:#d1d5db;--border2:#b0b7c3;
+  --text:#111827;--text2:#374151;--text3:#6b7280;
+  --accent:#9a7d4a;--accent2:#7a6038;--accent3:#b8964f;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#2563eb;--purple:#7c3aed;
+}
+html.light body{background:var(--bg);color:var(--text)}
+html.light .btn-primary{color:#fff!important}
+html.light input,html.light select,html.light textarea{color-scheme:light}
+html.light .cell-btn{color:var(--text2)}
+html.light .alerta-nc{background:#fef2f2;border-color:#fca5a5}
+html.light .alerta-pend{background:#fffbeb;border-color:#fcd34d}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
 button{font-family:var(--font);cursor:pointer;border:none;background:none;padding:0;color:inherit;-webkit-appearance:none;appearance:none}
 input,select,textarea{font-family:var(--font)}
@@ -412,6 +425,10 @@ td.td-cel span{font-weight:700;font-size:11px}
           </div>
         </div>
       </div>
+      <button id="tema-toggle" onclick="toggleTema()" title="Alternar modo claro/escuro"
+        style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:14px;cursor:pointer;color:var(--text2);transition:all .2s;line-height:1">
+        🌙
+      </button>
       <div class="user-chip">
         <div class="user-avatar" id="user-avatar">D</div>
         <div class="user-name" id="user-name-display">Diretor</div>
@@ -831,6 +848,23 @@ function initSidebar(){
 function toggleGearMenu(){
   document.getElementById('gear-menu').classList.toggle('open');
 }
+
+function toggleTema(){
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('sgq-tema', isLight ? 'light' : 'dark');
+  document.getElementById('tema-toggle').textContent = isLight ? '☀️' : '🌙';
+}
+
+// Aplica tema salvo ao carregar
+(function(){
+  if(localStorage.getItem('sgq-tema') === 'light'){
+    document.documentElement.classList.add('light');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('tema-toggle');
+      if(btn) btn.textContent = '☀️';
+    });
+  }
+})();
 
 // Render Dashboard (adaptado para Supabase)
 function calcStats(fvs){
