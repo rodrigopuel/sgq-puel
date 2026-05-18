@@ -3913,12 +3913,17 @@ async function selecionarTemplateFVMParaNova(templateId){
 
     const agora = new Date().toISOString();
     const fvmList = await client.getFVM();
-    const num = String(fvmList.length + 1).padStart(3,'0');
+    const ano = new Date().getFullYear();
+    const maxNum = fvmList.reduce((max, f) => {
+      const m = f.cod?.match(/FVM-\d{4}-(\d+)/);
+      return m ? Math.max(max, parseInt(m[1])) : max;
+    }, 0);
+    const num = String(maxNum + 1).padStart(3,'0');
     const criteriosSalvos = (tpl.criterios||[]).map(c=>({...c}));
 
     const novaFVM = {
       id: 'fvm' + Date.now(),
-      cod: `FVM-${new Date().getFullYear()}-${num}`,
+      cod: `FVM-${ano}-${num}`,
       obra_id: obra.id,
       template_id: templateId,
       servico: tpl.nome,
@@ -10786,7 +10791,11 @@ async function renderFRCForm(m, frcId = null) {
     } else {
       const existentes = await client.getFRC({ obra_id: obraSelecionadaId });
       const ano = new Date().getFullYear();
-      const num = String(existentes.length + 1).padStart(3, '0');
+      const maxNumFRC = existentes.reduce((max, f) => {
+        const m = f.cod?.match(/FRC-\d{4}-(\d+)/);
+        return m ? Math.max(max, parseInt(m[1])) : max;
+      }, 0);
+      const num = String(maxNumFRC + 1).padStart(3, '0');
       _frcDados = {
         id: null,
         obra_id: obraSelecionadaId,
