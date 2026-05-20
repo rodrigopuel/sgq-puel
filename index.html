@@ -390,7 +390,7 @@ td.td-cel span{font-weight:700;font-size:11px}
       <div class="topbar-section" id="topbar-section">Dashboard</div>
     </div>
     <div class="topbar-right">
-      <div class="gear-dropdown">
+      <div class="gear-dropdown" id="gear-dropdown">
         <button class="gear-btn" onclick="toggleGearMenu()" title="Configurações">
           ⚙️
         </button>
@@ -663,9 +663,12 @@ async function iniciarApp(){
   try {
     document.getElementById('user-name-display').textContent=usuarioAtual.nome.split(' ')[0];
     document.getElementById('user-avatar').textContent=usuarioAtual.nome[0];
-    document.getElementById('gear-item-templates-is').style.display = ['admin','master'].includes(usuarioAtual.perfil) ? '' : 'none';
-    document.getElementById('sidebar-cadastros-section').style.display = ['admin','master'].includes(usuarioAtual.perfil) ? '' : 'none';
-    document.getElementById('nav-locais').style.display = ['admin','master'].includes(usuarioAtual.perfil) ? '' : 'none';
+    const _isTecnico    = usuarioAtual.perfil === 'tecnico';
+    const _isAdminMaster = ['admin','master'].includes(usuarioAtual.perfil);
+    document.getElementById('gear-dropdown').style.display          = _isTecnico ? 'none' : '';
+    document.getElementById('gear-item-templates-is').style.display = _isAdminMaster ? '' : 'none';
+    document.getElementById('sidebar-cadastros-section').style.display = _isAdminMaster ? '' : 'none';
+    document.getElementById('nav-locais').style.display             = _isAdminMaster ? '' : 'none';
 
     // ── Configurar restrição de obras por usuário ──────────────────────────────
     // Salva o getObras original na primeira vez (para restaurar no próximo login)
