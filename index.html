@@ -606,6 +606,7 @@ function toast(msg, tipo='info'){
 // Estado global
 let usuarioAtual=null;
 let obraSelecionadaId = null;
+let _obrasPermitidas = null; // null = todas as obras; Set<string> = IDs permitidos para este usuário
 
 // FRC state
 let _frcDados = null;
@@ -665,7 +666,29 @@ async function iniciarApp(){
     document.getElementById('gear-item-templates-is').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
     document.getElementById('sidebar-cadastros-section').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
     document.getElementById('nav-locais').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
-    
+
+    // ── Configurar restrição de obras por usuário ──────────────────────────────
+    // Salva o getObras original na primeira vez (para restaurar no próximo login)
+    if (!window.supabaseClient._origGetObras) {
+      window.supabaseClient._origGetObras = window.supabaseClient.getObras.bind(window.supabaseClient);
+    }
+    // Sempre reseta para o original antes de aplicar nova restrição
+    window.supabaseClient.getObras = window.supabaseClient._origGetObras;
+
+    const _permIds = usuarioAtual?.obras_permitidas; // array de IDs ou null
+    const _isAdminDir = ['admin','diretor'].includes(usuarioAtual?.perfil);
+    if (!_isAdminDir && Array.isArray(_permIds) && _permIds.length > 0) {
+      _obrasPermitidas = new Set(_permIds);
+      const _orig = window.supabaseClient._origGetObras;
+      window.supabaseClient.getObras = async (ativas = false) => {
+        const all = await _orig(ativas);
+        return all.filter(o => _obrasPermitidas.has(o.id));
+      };
+    } else {
+      _obrasPermitidas = null;
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     await renderObraList();
     initSidebar();
     mostrarTela('screen-app'); 
@@ -8910,6 +8933,88 @@ async function salvarUsuario(){
   }
 }
 
+// ── Gerenciamento de obras por usuário ────────────────────────────────────────
+
+let _modalObrasUserId = null;
+
+async function abrirModalObrasUsuario(userId, userName, obrasAtuais) {
+  _modalObrasUserId = userId;
+
+  // Busca todas as obras (sem filtro de permissão)
+  const getObrasAll = window.supabaseClient._origGetObras || window.supabaseClient.getObras.bind(window.supabaseClient);
+  const todasObras = await getObrasAll();
+  const idsAtuais = new Set(obrasAtuais || []);
+
+  // Remove modal anterior se existir
+  const old = document.getElementById('modal-obras-usuario');
+  if (old) old.remove();
+
+  const itens = todasObras.map(o => `
+    <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <input type="checkbox" class="obra-perm-chk" value="${o.id}"
+        ${idsAtuais.has(o.id) ? 'checked' : ''}
+        style="width:14px;height:14px;accent-color:var(--accent);flex-shrink:0">
+      <span>
+        <span style="font-weight:500;color:var(--text)">${o.nome}</span>
+        <span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-left:6px">${o.cod}</span>
+        ${o.status !== 'ativa' ? `<span style="font-size:10px;color:var(--text3);margin-left:4px">(${o.status})</span>` : ''}
+      </span>
+    </label>`).join('');
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="modal-obras-usuario" class="modal-overlay open">
+      <div class="modal" style="max-width:520px">
+        <div class="modal-header">
+          <div>
+            <h3>Obras permitidas</h3>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${userName}</div>
+          </div>
+          <button class="btn btn-ghost" onclick="fecharModal('modal-obras-usuario')">✕</button>
+        </div>
+        <div class="modal-body" style="padding:0">
+          <div style="padding:10px 12px;background:rgba(59,130,246,.08);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)">
+            💡 Sem nenhuma seleção → usuário vê <strong>todas as obras</strong>. Selecione obras específicas para restringir o acesso.
+          </div>
+          <div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:6px;background:var(--bg2)">
+            <button type="button" onclick="document.querySelectorAll('.obra-perm-chk').forEach(c=>c.checked=true)"
+              style="font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">Todas</button>
+            <button type="button" onclick="document.querySelectorAll('.obra-perm-chk').forEach(c=>c.checked=false)"
+              style="font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">Nenhuma</button>
+          </div>
+          <div style="max-height:340px;overflow-y:auto">
+            ${itens || '<div style="padding:16px;color:var(--text3);font-size:13px">Nenhuma obra cadastrada</div>'}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="fecharModal('modal-obras-usuario')">Cancelar</button>
+          <button class="btn btn-primary" onclick="salvarObrasUsuario()">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function salvarObrasUsuario() {
+  if (!_modalObrasUserId) return;
+  const checks = Array.from(document.querySelectorAll('.obra-perm-chk:checked')).map(c => c.value);
+  // [] = nenhuma selecionada → sem restrição (null no BD, mas enviamos array vazio)
+  try {
+    const client = await esperarSupabase();
+    await client.update('usuarios', _modalObrasUserId, {
+      obras_permitidas: checks.length > 0 ? checks : null
+    });
+    fecharModal('modal-obras-usuario');
+    toast(checks.length > 0 ? `${checks.length} obra(s) definida(s) para o usuário` : 'Acesso liberado para todas as obras', 'success');
+    renderUsuarios(document.getElementById('main-content'));
+  } catch(e) {
+    console.error(e);
+    toast('Erro ao salvar obras: ' + e.message, 'error');
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 async function toggleUsuario(userId){
   if (!confirm('Deseja alterar o status deste usuário?')) {
     return;
@@ -10008,13 +10113,28 @@ async function reativarFornecedor(fornecedorId){
 async function renderUsuarios(m){
   try {
     const client = await esperarSupabase();
-    const usuarios = await client.getUsuarios();
+    // Busca usuários + todas as obras (sem filtro de permissão — painel admin)
+    const getObrasAll = window.supabaseClient._origGetObras || client.getObras.bind(client);
+    const [usuarios, todasObras] = await Promise.all([
+      client.getUsuarios(),
+      getObrasAll()
+    ]);
     const usuariosAtivos = usuarios.filter(u => u.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
     const usuariosInativos = usuarios.filter(u => !u.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
-    
+    const obraMap = Object.fromEntries(todasObras.map(o => [o.id, o]));
+
     // Verificar se o usuário atual tem permissão de admin
     const pA = usuarioAtual && ['diretor', 'admin'].includes(usuarioAtual.perfil);
-    
+
+    // Helper: exibir obras de um usuário
+    const _obrasLabel = (u) => {
+      const isAdminDir = ['admin','diretor'].includes(u.perfil);
+      if (isAdminDir) return `<span style="font-size:11px;color:var(--text3);font-style:italic">Todas (admin)</span>`;
+      const ids = u.obras_permitidas;
+      if (!ids || ids.length === 0) return `<span style="font-size:11px;color:var(--text3)">Todas</span>`;
+      return `<span style="font-size:11px;color:var(--accent);font-weight:600">${ids.length} obra${ids.length!==1?'s':''}</span>`;
+    };
+
     m.innerHTML=`
       <div class="page-header">
         <div><div class="page-title">Usuários</div><div class="page-sub">${usuariosAtivos.length} usuários ativos / ${usuariosInativos.length} inativos</div></div>
@@ -10031,6 +10151,7 @@ async function renderUsuarios(m){
                 <th>Nome</th>
                 <th>E-mail</th>
                 <th>Perfil</th>
+                <th>Obras</th>
                 <th>Status</th>
                 ${pA?'<th>Ações</th>':''}
               </tr>
@@ -10044,6 +10165,14 @@ async function renderUsuarios(m){
                     <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)">
                       ${u.perfil.toUpperCase()}
                     </span>
+                  </td>
+                  <td>
+                    ${_obrasLabel(u)}
+                    ${pA && !['admin','diretor'].includes(u.perfil) ? `
+                      <button class="btn btn-ghost btn-xs" style="margin-left:6px"
+                        onclick='abrirModalObrasUsuario("${u.id}", "${u.nome.replace(/"/g,'&quot;')}", ${JSON.stringify(u.obras_permitidas||[])})'>
+                        ✏️
+                      </button>` : ''}
                   </td>
                   <td>
                     <span style="font-size:12px;color:${u.ativo?'var(--green)':'var(--text3)'}">
