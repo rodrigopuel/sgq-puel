@@ -395,7 +395,7 @@ td.td-cel span{font-weight:700;font-size:11px}
           ⚙️
         </button>
         <div class="gear-menu" id="gear-menu">
-          <div class="gear-menu-item" onclick="navegar('obras')">
+          <div id="gear-item-obras" class="gear-menu-item" onclick="navegar('obras')">
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 13V6l7-4 7 4v7"/><path d="M6 13V9h4v4"/></svg>
             Obras
           </div>
@@ -419,7 +419,7 @@ td.td-cel span{font-weight:700;font-size:11px}
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M5 6h6M5 9h4"/></svg>
             Fornecedores
           </div>
-          <div class="gear-menu-item" onclick="navegar('usuarios')">
+          <div id="gear-item-usuarios" class="gear-menu-item" onclick="navegar('usuarios')">
             <svg class="gear-menu-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5"/><circle cx="12" cy="8" r="2"/><path d="M10 14c0-2 1-3 2-3s2 1 2 3"/></svg>
             Usuários
           </div>
@@ -663,12 +663,17 @@ async function iniciarApp(){
   try {
     document.getElementById('user-name-display').textContent=usuarioAtual.nome.split(' ')[0];
     document.getElementById('user-avatar').textContent=usuarioAtual.nome[0];
-    const _isTecnico    = usuarioAtual.perfil === 'tecnico';
+    const _isTecnico     = usuarioAtual.perfil === 'tecnico';
+    const _isEngenheiro  = usuarioAtual.perfil === 'engenheiro';
     const _isAdminMaster = ['admin','master'].includes(usuarioAtual.perfil);
-    document.getElementById('gear-dropdown').style.display          = _isTecnico ? 'none' : '';
-    document.getElementById('gear-item-templates-is').style.display = _isAdminMaster ? '' : 'none';
+    document.getElementById('gear-dropdown').style.display             = _isTecnico ? 'none' : '';
+    // Templates IS: admin/master podem editar; engenheiro pode visualizar
+    document.getElementById('gear-item-templates-is').style.display   = (_isAdminMaster || _isEngenheiro) ? '' : 'none';
+    // Obras e Usuários: somente admin/master
+    document.getElementById('gear-item-obras').style.display          = _isAdminMaster ? '' : 'none';
+    document.getElementById('gear-item-usuarios').style.display       = _isAdminMaster ? '' : 'none';
     document.getElementById('sidebar-cadastros-section').style.display = _isAdminMaster ? '' : 'none';
-    document.getElementById('nav-locais').style.display             = _isAdminMaster ? '' : 'none';
+    document.getElementById('nav-locais').style.display               = _isAdminMaster ? '' : 'none';
 
     // ── Configurar restrição de obras por usuário ──────────────────────────────
     // Salva o getObras original na primeira vez (para restaurar no próximo login)
@@ -725,8 +730,16 @@ async function navegar(s){
     return;
   }
 
-  if (s === 'templates-is' && !['admin','master'].includes(usuarioAtual?.perfil)) {
+  if (s === 'obras' && !['admin','master'].includes(usuarioAtual?.perfil)) {
     toast('Acesso restrito ao perfil Admin ou Master', 'error');
+    return;
+  }
+  if (s === 'usuarios' && !['admin','master'].includes(usuarioAtual?.perfil)) {
+    toast('Acesso restrito ao perfil Admin ou Master', 'error');
+    return;
+  }
+  if (s === 'templates-is' && !['admin','master','engenheiro'].includes(usuarioAtual?.perfil)) {
+    toast('Acesso restrito ao perfil Admin, Master ou Engenheiro', 'error');
     return;
   }
   
@@ -5029,8 +5042,8 @@ async function renderTemplates(m){
       return servicoA.localeCompare(servicoB);
     });
     
-    const pA = ['master', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
-    
+    const pA = ['master', 'admin'].includes(usuarioAtual.perfil);
+
     m.innerHTML=`
       <div class="page-header">
         <div><div class="page-title">Templates FVS</div><div class="page-sub">${templates.length} template${templates.length!==1?'s':''}</div></div>
@@ -5731,7 +5744,8 @@ async function renderTemplatesIS(m) {
     });
 
     templates.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
-    const pA = ['master', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
+    const pA    = ['master', 'admin', 'engenheiro'].includes(usuarioAtual.perfil); // pode ver IS
+    const pEdit = ['master', 'admin'].includes(usuarioAtual.perfil);               // pode enviar/revisar IS
 
     m.innerHTML = `
       <div class="page-header">
@@ -5756,9 +5770,9 @@ async function renderTemplatesIS(m) {
             const acoes = pA ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
               ${is
                 ? `<button class="btn btn-ghost btn-xs" onclick="isVerArquivo('${is.arquivo_url}','${is.arquivo_tipo}')">📄 Ver IS</button>
-                   <button class="btn btn-secondary btn-xs" onclick="isAbrirUpload('${t.id}','${t.servico}',true,'${is.id}')">↑ Nova Revisão</button>
+                   ${pEdit ? `<button class="btn btn-secondary btn-xs" onclick="isAbrirUpload('${t.id}','${t.servico}',true,'${is.id}')">↑ Nova Revisão</button>` : ''}
                    <button class="btn btn-ghost btn-xs" onclick="isVerHistorico('${t.id}')">Histórico</button>`
-                : `<button class="btn btn-primary btn-xs" onclick="isAbrirUpload('${t.id}','${t.servico}',false,null)">+ Anexar IS</button>`}
+                : pEdit ? `<button class="btn btn-primary btn-xs" onclick="isAbrirUpload('${t.id}','${t.servico}',false,null)">+ Anexar IS</button>` : '—'}
             </div>` : '—';
             return `<tr>
               <td style="font-weight:500;color:var(--text)">${t.servico}</td>
@@ -6329,10 +6343,12 @@ async function renderTemplatesFVM(m){
       return nomeA.localeCompare(nomeB);
     });
     
+    const pA = ['master', 'admin'].includes(usuarioAtual?.perfil);
+
     m.innerHTML=`
       <div class="page-header">
         <div><div class="page-title">Templates FVM</div><div class="page-sub">${templates.length} template${templates.length!==1?'s':''} cadastrado${templates.length!==1?'s':''}</div></div>
-        <button class="btn btn-primary" onclick="novoTemplateFVM()">+ Novo Template FVM</button>
+        ${pA ? '<button class="btn btn-primary" onclick="novoTemplateFVM()">+ Novo Template FVM</button>' : ''}
       </div>
       <div class="table-wrap"><div class="table-scroll"><table>
         <thead><tr><th>Template</th><th>Revisão atual</th><th>Atualizado em</th><th>Grupos</th><th>Critérios</th><th>Ações</th></tr></thead>
@@ -6349,7 +6365,7 @@ async function renderTemplatesFVM(m){
             <td>${nGrupos}</td>
             <td>${nCrit}</td>
             <td class="td-acoes"><div style="display:flex;gap:6px">
-              <button class="btn btn-secondary btn-xs" onclick="selecionarTemplateFVM('${tpl.id}')">Editar</button>
+              ${pA ? `<button class="btn btn-secondary btn-xs" onclick="selecionarTemplateFVM('${tpl.id}')">Editar</button>` : ''}
               <button class="btn btn-ghost btn-xs" onclick="verHistoricoFVM('${tpl.id}')">Revisões</button>
             </div></td>
           </tr>
