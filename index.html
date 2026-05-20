@@ -9017,6 +9017,95 @@ async function salvarObrasUsuario() {
   }
 }
 
+// ── Alterar senha de usuário ──────────────────────────────────────────────────
+
+function abrirModalAlterarSenha(userId, userName) {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
+    toast('Sem permissão para alterar senhas', 'error');
+    return;
+  }
+  const old = document.getElementById('modal-alterar-senha');
+  if (old) old.remove();
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="modal-alterar-senha" class="modal-overlay open">
+      <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+          <div>
+            <h3>Alterar senha</h3>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${userName}</div>
+          </div>
+          <button class="btn btn-ghost" onclick="fecharModal('modal-alterar-senha')">✕</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div class="field">
+            <label>Nova senha *</label>
+            <input type="password" id="senha-nova" placeholder="Mínimo 6 caracteres"
+              oninput="_senhaValidar()" autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label>Confirmar nova senha *</label>
+            <input type="password" id="senha-confirmar" placeholder="Repita a senha"
+              oninput="_senhaValidar()" autocomplete="new-password">
+          </div>
+          <div id="senha-feedback" style="font-size:12px;min-height:16px"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="fecharModal('modal-alterar-senha')">Cancelar</button>
+          <button id="btn-salvar-senha" class="btn btn-primary" onclick="salvarNovaSenha('${userId}')" disabled>Salvar</button>
+        </div>
+      </div>
+    </div>
+  `);
+  document.getElementById('senha-nova').focus();
+}
+
+function _senhaValidar() {
+  const nova     = document.getElementById('senha-nova')?.value || '';
+  const confirma = document.getElementById('senha-confirmar')?.value || '';
+  const fb       = document.getElementById('senha-feedback');
+  const btn      = document.getElementById('btn-salvar-senha');
+  if (!nova) {
+    fb.textContent = '';
+    btn.disabled = true;
+    return;
+  }
+  if (nova.length < 6) {
+    fb.style.color = 'var(--red)';
+    fb.textContent = '⚠ A senha deve ter no mínimo 6 caracteres.';
+    btn.disabled = true;
+    return;
+  }
+  if (confirma && nova !== confirma) {
+    fb.style.color = 'var(--red)';
+    fb.textContent = '⚠ As senhas não coincidem.';
+    btn.disabled = true;
+    return;
+  }
+  if (nova === confirma && nova.length >= 6) {
+    fb.style.color = 'var(--green)';
+    fb.textContent = '✔ Senhas coincidem.';
+    btn.disabled = false;
+    return;
+  }
+  fb.textContent = '';
+  btn.disabled = true;
+}
+
+async function salvarNovaSenha(userId) {
+  const nova = document.getElementById('senha-nova')?.value || '';
+  if (nova.length < 6) { toast('Senha inválida', 'error'); return; }
+  try {
+    const client = await esperarSupabase();
+    await client.update('usuarios', userId, { senha: nova });
+    fecharModal('modal-alterar-senha');
+    toast('Senha alterada com sucesso!', 'success');
+  } catch(e) {
+    console.error(e);
+    toast('Erro ao alterar senha: ' + e.message, 'error');
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 async function toggleUsuario(userId){
@@ -10188,6 +10277,11 @@ async function renderUsuarios(m){
                       <button class="btn btn-ghost btn-xs" onclick="toggleUsuario('${u.id}')">
                         ${u.ativo?'Inativar':'Ativar'}
                       </button>
+                      ${['master','engenheiro','tecnico'].includes(u.perfil) ? `
+                        <button class="btn btn-ghost btn-xs" title="Alterar senha"
+                          onclick='abrirModalAlterarSenha("${u.id}", "${u.nome.replace(/"/g,'&quot;')}") '>
+                          🔑 Senha
+                        </button>` : ''}
                     </td>
                   ` : pA ? '<td>—</td>' : ''}
                 </tr>
