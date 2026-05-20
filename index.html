@@ -680,7 +680,11 @@ async function iniciarApp(){
 
     const _permIds = usuarioAtual?.obras_permitidas; // array de IDs ou null
     const _isAdminDir = ['admin','master'].includes(usuarioAtual?.perfil);
-    if (!_isAdminDir && Array.isArray(_permIds) && _permIds.length > 0) {
+    if (_isAdminDir) {
+      // Admin/Master: acesso irrestrito a todas as obras
+      _obrasPermitidas = null;
+    } else if (Array.isArray(_permIds) && _permIds.length > 0) {
+      // Engenheiro/Técnico com obras atribuídas: filtra pelas permitidas
       _obrasPermitidas = new Set(_permIds);
       const _orig = window.supabaseClient._origGetObras;
       window.supabaseClient.getObras = async (ativas = false) => {
@@ -688,7 +692,9 @@ async function iniciarApp(){
         return all.filter(o => _obrasPermitidas.has(o.id));
       };
     } else {
-      _obrasPermitidas = null;
+      // Engenheiro/Técnico sem obras atribuídas: não vê nenhuma obra
+      _obrasPermitidas = new Set(); // Set vazio = nenhuma obra
+      window.supabaseClient.getObras = async () => [];
     }
     // ──────────────────────────────────────────────────────────────────────────
 
