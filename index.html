@@ -1342,9 +1342,7 @@ function criarModalObra(obraId = null) {
             </div>
             <div class="field">
               <label>Engenheiro Responsável</label>
-              <select id="obra-eng">
-                <option value="">Selecione...</option>
-              </select>
+              <input type="text" id="obra-eng" placeholder="Nome do engenheiro responsável">
             </div>
           </div>
           <div class="meta-grid">
@@ -1374,21 +1372,12 @@ function criarModalObra(obraId = null) {
 async function carregarDadosModalObra(obraId) {
   try {
     const client = await esperarSupabase();
-    const usuarios = await client.getUsuarios();
-    const engenheiros = usuarios.filter(u => ['engenheiro', 'admin', 'master'].includes(u.perfil));
-    
-    // Preencher select de engenheiros
-    const engSelect = document.getElementById('obra-eng');
-    if (engSelect) {
-      engSelect.innerHTML = '<option value="">Selecione...</option>' + 
-        engenheiros.map(eng => `<option value="${eng.id}">${eng.nome}</option>`).join('');
-    }
-    
+
     // Se for edição, carregar dados da obra
     if (obraId) {
       const obras = await client.getObras();
       const obra = obras.find(o => o.id === obraId);
-      
+
       if (obra) {
         document.getElementById('obra-nome').value = obra.nome || '';
         document.getElementById('obra-cod').value = obra.cod || '';
