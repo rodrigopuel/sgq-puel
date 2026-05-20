@@ -6019,7 +6019,7 @@ async function renderAplicacaoIS(m) {
 
     fvsList.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
     const totalApls = aplicacoes.filter(a => fvsList.some(f => f.id === a.fvs_id)).length;
-    const pA = ['master', 'admin', 'engenheiro'].includes(usuarioAtual?.perfil);
+    const pA = ['master', 'admin', 'engenheiro', 'tecnico'].includes(usuarioAtual?.perfil);
 
     m.innerHTML = `
       <div class="page-header">
