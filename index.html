@@ -663,9 +663,9 @@ async function iniciarApp(){
   try {
     document.getElementById('user-name-display').textContent=usuarioAtual.nome.split(' ')[0];
     document.getElementById('user-avatar').textContent=usuarioAtual.nome[0];
-    document.getElementById('gear-item-templates-is').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
-    document.getElementById('sidebar-cadastros-section').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
-    document.getElementById('nav-locais').style.display = usuarioAtual.perfil === 'admin' ? '' : 'none';
+    document.getElementById('gear-item-templates-is').style.display = ['admin','master'].includes(usuarioAtual.perfil) ? '' : 'none';
+    document.getElementById('sidebar-cadastros-section').style.display = ['admin','master'].includes(usuarioAtual.perfil) ? '' : 'none';
+    document.getElementById('nav-locais').style.display = ['admin','master'].includes(usuarioAtual.perfil) ? '' : 'none';
 
     // ── Configurar restrição de obras por usuário ──────────────────────────────
     // Salva o getObras original na primeira vez (para restaurar no próximo login)
@@ -716,8 +716,8 @@ async function navegar(s){
     return;
   }
 
-  if (s === 'templates-is' && usuarioAtual?.perfil !== 'admin') {
-    toast('Acesso restrito ao perfil Administrador', 'error');
+  if (s === 'templates-is' && !['admin','master'].includes(usuarioAtual?.perfil)) {
+    toast('Acesso restrito ao perfil Admin ou Master', 'error');
     return;
   }
   
@@ -784,7 +784,7 @@ async function renderObraList(){
     const list = document.getElementById('obra-list');
     if (!list) return;
 
-    list.innerHTML = (usuarioAtual?.perfil === 'admin' ? `
+    list.innerHTML = (['admin','master'].includes(usuarioAtual?.perfil) ? `
       <div class="obra-item ${!obraSelecionadaId ? 'selected' : ''}" onclick="selecionarObra(null)">
         <div style="flex:1">
           <div style="font-weight:500">Todas as obras</div>
@@ -1536,7 +1536,7 @@ async function renderFVS(m){
     
     m.innerHTML=`
       <div class="page-header">
-        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas • ${aprovadas.length} aprovadas${usuarioAtual?.perfil==='admin'&&preExecutivas.length?` • ${preExecutivas.length} pré-executivas`:''}${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
+        <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas • ${aprovadas.length} aprovadas${['admin','master'].includes(usuarioAtual?.perfil)&&preExecutivas.length?` • ${preExecutivas.length} pré-executivas`:''}${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
         ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>` : ''}
       </div>
 
@@ -1591,7 +1591,7 @@ async function renderFVS(m){
                     <div style="display:flex;gap:6px;align-items:center">
                       <span class="tag ${fvs.status==='andamento'?'tag-and':fvs.status==='aprovada'?'tag-aprov':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':fvs.status==='aprovada'?'APROVADA':'ENCERRADA'}</span>
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
-                      ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
+                      ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
                     ${isVigente ? `<span class="tag" style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();isVerArquivo('${isVigente.arquivo_url}','${isVigente.arquivo_tipo}')" title="Ver Instrução de Serviço (${isVigente.versao})">📄 IS ${isVigente.versao}</span>` : ''}
                   </div>
@@ -1631,7 +1631,7 @@ async function renderFVS(m){
                     <div style="display:flex;gap:6px;align-items:center">
                       <span class="tag ${fvs.status==='andamento'?'tag-and':fvs.status==='aprovada'?'tag-aprov':'tag-ok'}">${fvs.status==='andamento'?'EM ANDAMENTO':fvs.status==='aprovada'?'APROVADA':'ENCERRADA'}</span>
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
-                      ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
+                      ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
                     ${isVigente ? `<span class="tag" style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();isVerArquivo('${isVigente.arquivo_url}','${isVigente.arquivo_tipo}')" title="Ver Instrução de Serviço (${isVigente.versao})">📄 IS ${isVigente.versao}</span>` : ''}
                   </div>
@@ -1670,7 +1670,7 @@ async function renderFVS(m){
                     <div style="display:flex;gap:6px;align-items:center">
                       <span class="tag tag-aprov">APROVADA</span>
                       ${ncCount>0?`<span class="tag tag-nc">${ncCount} NC</span>`:''}
-                      ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
+                      ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                     </div>
                     ${isVigente ? `<span class="tag" style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();isVerArquivo('${isVigente.arquivo_url}','${isVigente.arquivo_tipo}')" title="Ver Instrução de Serviço (${isVigente.versao})">📄 IS ${isVigente.versao}</span>` : ''}
                   </div>
@@ -1688,7 +1688,7 @@ async function renderFVS(m){
       ` : ''}
 
       <!-- Seção PRÉ-EXECUTIVAS (admin only) -->
-      ${usuarioAtual?.perfil === 'admin' && preExecutivas.length > 0 ? `
+      ${['admin','master'].includes(usuarioAtual?.perfil) && preExecutivas.length > 0 ? `
         <div id="fvs-secao-pre-executivo" style="margin-top:20px">
           <div style="font-size:12px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">PRÉ-EXECUTIVAS</div>
           ${preExecutivas.map(fvs => {
@@ -1703,7 +1703,7 @@ async function renderFVS(m){
                   </div>
                   <div style="display:flex;gap:6px;align-items:center">
                     <span class="tag tag-pre">PRÉ-EXECUTIVA</span>
-                    ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
+                    ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-danger btn-xs" onclick="excluirFVS('${fvs.id}', '${fvs.cod}', event)" title="Excluir FVS" style="padding:2px 6px;font-size:10px">🗑</button>` : ''}
                   </div>
                 </div>
               </div>
@@ -1712,7 +1712,7 @@ async function renderFVS(m){
         </div>
       ` : ''}
 
-      ${fvsList.filter(f => f.status !== 'pre-executivo' || usuarioAtual?.perfil === 'admin').length === 0 ? `
+      ${fvsList.filter(f => f.status !== 'pre-executivo' || ['admin','master'].includes(usuarioAtual?.perfil)).length === 0 ? `
         <div class="empty">
           <div class="empty-title">Nenhuma FVS cadastrada</div>
           <div class="empty-desc">Clique em "+ Nova FVS" para criar sua primeira ficha</div>
@@ -2171,7 +2171,7 @@ async function renderGradeFVS() {
             <span class="tag ${fvs.status==='andamento'?'tag-and':fvs.status==='aprovada'?'tag-aprov':fvs.status==='pre-executivo'?'tag-pre':'tag-ok'}"
               style="font-size:11px;padding:4px 8px;cursor:${['pre-executivo','andamento'].includes(fvs.status)?'pointer':'default'}"
               onclick="clicarBadgeStatusFVS('${fvs.id}')"
-              title="${fvs.status==='pre-executivo'?'Clique para disponibilizar para a obra':fvs.status==='andamento'&&usuarioAtual?.perfil==='admin'?'Clique para voltar a pré-executivo':''}">
+              title="${fvs.status==='pre-executivo'?'Clique para disponibilizar para a obra':fvs.status==='andamento'&&['admin','master'].includes(usuarioAtual?.perfil)?'Clique para voltar a pré-executivo':''}">
               ${fvs.status==='andamento'?'EM ANDAMENTO':fvs.status==='aprovada'?'APROVADA':fvs.status==='pre-executivo'?'PRÉ-EXECUTIVA':'ENCERRADA'}
             </span>
             ${fvs.fechamento ? `
@@ -2186,7 +2186,7 @@ async function renderGradeFVS() {
                 <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
                 ENG. RESPONSÁVEL
               </button>` : ''}
-            ${usuarioAtual?.perfil === 'admin' ? `
+            ${['admin','master'].includes(usuarioAtual?.perfil) ? `
               <button onclick="aprovarFVS('${fvs.id}')" title="Aprovar FVS"
                 style="margin-top:4px;display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font-mono);font-weight:600;letter-spacing:.4px;padding:4px 10px;border-radius:12px;border:1px solid ${fvs.status === 'encerrada' ? '#1d4ed8' : '#334155'};background:${fvs.status === 'encerrada' ? '#1e3a5f' : '#1a1a2e'};color:${fvs.status === 'encerrada' ? '#60a5fa' : '#475569'};cursor:pointer;transition:all .15s"
                 onmouseover="this.style.borderColor='#3b82f6';this.style.color='#93c5fd'" onmouseout="this.style.borderColor='${fvs.status === 'encerrada' ? '#1d4ed8' : '#334155'}';this.style.color='${fvs.status === 'encerrada' ? '#60a5fa' : '#475569'}'">
@@ -2409,7 +2409,7 @@ function renderOcorrenciasFVS(ocorrencias) {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
           <span class="tag ${rc ? 'tag-ok' : atrasada ? 'tag-nc' : 'tag-and'}">${rc ? 'CORRIGIDA' : atrasada ? 'ATRASADA' : 'ABERTA'}</span>
-          ${usuarioAtual.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="excluirOcorrencia('${oc.fvs_id}','${oc.id}')" title="Excluir">🗑</button>` : ''}
+          ${['admin','master'].includes(usuarioAtual.perfil) ? `<button class="btn btn-danger btn-xs" onclick="excluirOcorrencia('${oc.fvs_id}','${oc.id}')" title="Excluir">🗑</button>` : ''}
         </div>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${oc.descricao}</div>
@@ -3204,7 +3204,7 @@ async function marcarCorrigida(fvsId, ocorrenciaId, fotoCorrecao, tipoRC) {
 
 async function excluirOcorrencia(fvsId, ocorrenciaId) {
   // Verificar se usuário é admin (controle de acesso no frontend)
-  if (usuarioAtual.perfil !== 'admin') {
+  if (!['admin','master'].includes(usuarioAtual.perfil)) {
     toast('Apenas administradores podem excluir não conformidades', 'error');
     return;
   }
@@ -3328,7 +3328,7 @@ async function clicarBadgeStatusFVS(fvsId) {
 
   // andamento → pré-executivo (admin only, sem preenchimento)
   if (status === 'andamento') {
-    if (usuarioAtual?.perfil !== 'admin') return;
+    if (!['admin','master'].includes(usuarioAtual?.perfil)) return;
     const totalCelulas = (window.fvsAtual?.criterios||[]).length * (window.fvsAtual?.locais||[]).length;
     const preenchidas  = Object.keys(window.fvsAtual?.resultados || {}).length;
     if (preenchidas > 0) {
@@ -3350,7 +3350,7 @@ async function clicarBadgeStatusFVS(fvsId) {
 }
 
 async function aprovarFVS(fvsId) {
-  if (usuarioAtual?.perfil !== 'admin') {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
     toast('Somente o perfil admin pode aprovar FVS.', 'error');
     return;
   }
@@ -3433,7 +3433,7 @@ async function excluirFVS(fvsId, fvsCod, event) {
   }
   
   // Verificar se usuário é admin
-  if (usuarioAtual?.perfil !== 'admin') {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
     toast('Ação permitida somente para usuário admin', 'error');
     return;
   }
@@ -6157,7 +6157,7 @@ function aplISVerLista(fvsId) {
               <td style="padding:10px 14px">
                 <div style="display:flex;gap:6px">
                   <button class="btn btn-ghost btn-xs" onclick="aplISVerRegistro('${a.id}')">🔍 Ver</button>
-                  ${usuarioAtual?.perfil === 'admin' ? `<button class="btn btn-danger btn-xs" onclick="aplISExcluirDaLista('${a.id}','${fvsId}')">🗑</button>` : ''}
+                  ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-danger btn-xs" onclick="aplISExcluirDaLista('${a.id}','${fvsId}')">🗑</button>` : ''}
                 </div>
               </td>
             </tr>`).join('')}
@@ -9641,7 +9641,7 @@ async function localSalvarInline(containerId, torre, tipo, pavimento, setor) {
 }
 
 async function renderLocais(m) {
-  if (usuarioAtual?.perfil !== 'admin') {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
     m.innerHTML = '<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">Acesso restrito</div><div class="empty-desc">Somente administradores podem gerenciar o cadastro de locais.</div></div>';
     return;
   }
