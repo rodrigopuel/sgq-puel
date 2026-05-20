@@ -10300,34 +10300,57 @@ async function renderUsuarios(m){
         </div>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-top:16px">
-        <div style="font-weight:600;margin-bottom:8px;color:var(--text)">📋 Permissões por perfil de usuário:</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;line-height:1.6">
-          <div>
-            <strong style="color:var(--accent)">👑 ADMIN/MASTER:</strong><br>
-            • Gerenciar todos os usuários<br>
-            • Criar, editar e encerrar obras<br>
-            • Criar e gerenciar templates FVS<br>
-            • Acessar todos os relatórios e dossiês<br>
-            • Visualizar e gerenciar todas as FVS<br>
-            • Configurar todo o sistema
+        <div style="font-weight:600;margin-bottom:12px;color:var(--text)">📋 Permissões por perfil de usuário:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px;line-height:1.8">
+          <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;border:1px solid var(--border)">
+            <div style="font-weight:700;color:var(--accent);margin-bottom:6px;font-size:13px">👑 ADMIN / MASTER</div>
+            <div style="color:var(--text2)">
+              ✅ Acesso irrestrito a todas as obras<br>
+              ✅ Criar, editar e encerrar obras<br>
+              ✅ Criar e gerenciar templates FVS e IS<br>
+              ✅ Criar nova FVS<br>
+              ✅ Alterar engenheiro responsável da FVS<br>
+              ✅ Gerenciar usuários (criar, ativar/inativar)<br>
+              ✅ Alterar senha de outros usuários<br>
+              ✅ Definir obras por usuário<br>
+              ✅ Acessar configurações (⚙️)<br>
+              ✅ Todos os cadastros e relatórios<br>
+              ✅ Aplicar instruções de serviço (IS)
+            </div>
           </div>
-          <div>
-            <strong style="color:var(--green)">👷 ENGENHEIRO:</strong><br>
-            • Criar e executar FVS<br>
-            • Registrar não conformidades<br>
-            • Acessar relatórios das obras<br>
-            • Visualizar templates de serviço<br>
-            • Encerrar FVS após conclusão<br>
-            • Gerar relatórios de auditoria
+          <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;border:1px solid var(--border)">
+            <div style="font-weight:700;color:var(--green);margin-bottom:6px;font-size:13px">👷 ENGENHEIRO</div>
+            <div style="color:var(--text2)">
+              ✅ Alimentar e executar FVS<br>
+              ✅ Encerrar FVS após conclusão<br>
+              ✅ Registrar não conformidades<br>
+              ✅ Acessar relatórios e dossiês<br>
+              ✅ Aplicar instruções de serviço (IS)<br>
+              ✅ Visualizar templates de serviço<br>
+              ⚠️ Acesso limitado às obras atribuídas<br>
+              ❌ Não cria nem edita obras<br>
+              ❌ Não cria nova FVS<br>
+              ❌ Sem acesso às configurações (⚙️)<br>
+              ❌ Sem acesso aos cadastros
+            </div>
           </div>
-          <div>
-            <strong style="color:var(--amber)">🔧 TÉCNICO:</strong><br>
-            • Executar FVS designadas<br>
-            • Registrar não conformidades<br>
-            • Visualizar relatórios básicos<br>
-            • Acompanhar status das obras<br>
-            • Acessar templates para consulta
+          <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;border:1px solid var(--border)">
+            <div style="font-weight:700;color:var(--amber,#f59e0b);margin-bottom:6px;font-size:13px">🔧 TÉCNICO</div>
+            <div style="color:var(--text2)">
+              ✅ Alimentar FVS designadas<br>
+              ✅ Registrar não conformidades<br>
+              ✅ Acessar alertas e relatórios básicos<br>
+              ✅ Aplicar instruções de serviço (IS)<br>
+              ✅ Visualizar templates para consulta<br>
+              ⚠️ Acesso apenas às obras atribuídas<br>
+              ❌ Não vê "Todas as obras"<br>
+              ❌ Não cria nem edita obras<br>
+              ❌ Não cria nova FVS<br>
+              ❌ Sem acesso às configurações (⚙️)<br>
+              ❌ Sem acesso aos cadastros
+            </div>
           </div>
+        </div>
       </div>
     `;
   } catch (error) {
