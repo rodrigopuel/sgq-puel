@@ -1439,7 +1439,7 @@ async function salvarObra(obraId) {
     } else {
       // Criar nova obra
       const novaObra = {
-        id: 'o' + Date.now(),
+        id: crypto.randomUUID(),
         nome,
         cod,
         tipo,
@@ -2053,7 +2053,7 @@ async function criarNovaFVS() {
     const engenheiroNome = document.getElementById('fvs-engenheiro')?.value?.trim() || null;
 
     const novaFVS = {
-      id: 'f' + Date.now(),
+      id: crypto.randomUUID(),
       cod: codigo,
       obra_id: obraId,
       template_id: templateId,
@@ -2635,7 +2635,7 @@ async function salvarOcorrencia() {
     const criterio = window.fvsAtual.criterios[modalCriterioIndex];
     const localIdx = window.fvsAtual.locais.indexOf(modalLocal);
     const novaOcorrencia = {
-      id: mkId('oc'),
+      id: crypto.randomUUID(),
       fvs_id: modalFvsId,
       criterio_id: criterio?.id || `crit_${modalCriterioIndex}`,
       criterio_item: criterio?.item || `Critério ${modalCriterioIndex}`,
@@ -4005,7 +4005,7 @@ async function selecionarTemplateFVMParaNova(templateId){
     const criteriosSalvos = (tpl.criterios||[]).map(c=>({...c}));
 
     const novaFVM = {
-      id: 'fvm' + Date.now(),
+      id: crypto.randomUUID(),
       cod: `FVM-${ano}-${num}`,
       obra_id: obra.id,
       template_id: templateId,
@@ -4592,7 +4592,7 @@ async function salvarFornecedorRapido() {
     const client = await esperarSupabase();
     const cnpjFormatado = cnpjRaw.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     const novoForn = {
-      id: 'forn' + Date.now(),
+      id: crypto.randomUUID(),
       nome,
       documento: cnpjRaw,
       tipo_documento: 'cnpj',
@@ -5687,7 +5687,7 @@ async function salvarTemplate() {
     } else {
       // Criar novo template
       const novoTemplate = {
-        id: 't' + Date.now(),
+        id: crypto.randomUUID(),
         servico: servico,
         disciplina: disciplina,
         norma: norma,
@@ -5885,7 +5885,7 @@ async function salvarTemplateIS() {
       }
     }
     await client.insert('fvs_is', {
-      id: 'is' + Date.now(), fvs_id: _isFvsId, versao,
+      id: crypto.randomUUID(), fvs_id: _isFvsId, versao,
       arquivo_nome: _isArquivoAtual.name, arquivo_tipo: ext,
       arquivo_url: url, arquivo_path: path,
       data_upload: new Date().toISOString(),
@@ -6252,7 +6252,7 @@ async function aplISSalvar() {
   try {
     const client = await esperarSupabase();
     await client.insert('aplicacoes_is', {
-      id: mkId('apl'),
+      id: crypto.randomUUID(),
       fvs_id: fvsId,
       is_versao: _aplIsInfo.versao,
       is_arquivo_url: _aplIsInfo.arquivo_url,
@@ -6614,7 +6614,7 @@ async function salvarNovoTemplateFVM() {
     const grupos = fvmEditorGrupos.map(g => ({ ...g, criterios: g.criterios.map(c => ({ ...c })) }));
 
     const novoTemplate = {
-      id: 'tf' + Date.now(),
+      id: crypto.randomUUID(),
       nome,
       revisao: 'Rev. 00',
       atualizado_em: agora,
@@ -8940,7 +8940,7 @@ async function salvarUsuario(){
     
     // Criar novo usuário
     const novoUsuario = {
-      id: 'u' + Date.now(),
+      id: crypto.randomUUID(),
       nome,
       email,
       perfil,
@@ -9508,7 +9508,7 @@ async function salvarFornecedor(){
     // Criar novo fornecedor
     console.log('🔍 DEBUG: Criando novo fornecedor...');
     const novoFornecedor = {
-      id: 'f' + Date.now(),
+      id: crypto.randomUUID(),
       nome,
       documento: documento,
       tipo_documento: tipoDocumento,
