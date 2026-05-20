@@ -8957,8 +8957,9 @@ async function salvarUsuario(){
     renderUsuarios(document.getElementById('main-content'));
     
   } catch (error) {
-    console.error('Erro ao salvar usuário:', error);
-    toast('Erro ao cadastrar usuário', 'error');
+    const msg = error?.message || error?.error_description || JSON.stringify(error);
+    console.error('Erro ao salvar usuário:', msg, error);
+    toast('Erro ao cadastrar usuário: ' + msg, 'error');
   }
 }
 
