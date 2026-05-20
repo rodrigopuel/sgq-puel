@@ -676,7 +676,7 @@ async function iniciarApp(){
     window.supabaseClient.getObras = window.supabaseClient._origGetObras;
 
     const _permIds = usuarioAtual?.obras_permitidas; // array de IDs ou null
-    const _isAdminDir = ['admin','diretor'].includes(usuarioAtual?.perfil);
+    const _isAdminDir = ['admin','master'].includes(usuarioAtual?.perfil);
     if (!_isAdminDir && Array.isArray(_permIds) && _permIds.length > 0) {
       _obrasPermitidas = new Set(_permIds);
       const _orig = window.supabaseClient._origGetObras;
@@ -711,7 +711,7 @@ async function navegar(s){
   }
 
   // Restringir Consultor IA a admin e engenheiro
-  if (s === 'consultor' && !['admin','engenheiro','diretor'].includes(usuarioAtual?.perfil)) {
+  if (s === 'consultor' && !['admin','engenheiro','master'].includes(usuarioAtual?.perfil)) {
     toast('Função indisponível para seu perfil', 'error');
     return;
   }
@@ -1220,8 +1220,8 @@ async function renderObras(m){
     const usuarios = await client.getUsuarios();
     
     // Verificar permissões
-    const pA = usuarioAtual && ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
-    
+    const pA = usuarioAtual && ['master', 'admin'].includes(usuarioAtual.perfil);
+
     m.innerHTML=`
       <div class="page-header">
         <div><div class="page-title">Obras</div><div class="page-sub">${obras.filter(o=>o.status==='ativa').length} ativa${obras.filter(o=>o.status==='ativa').length!==1?'s':''}</div></div>
@@ -1353,7 +1353,7 @@ async function carregarDadosModalObra(obraId) {
   try {
     const client = await esperarSupabase();
     const usuarios = await client.getUsuarios();
-    const engenheiros = usuarios.filter(u => ['engenheiro', 'admin', 'diretor'].includes(u.perfil));
+    const engenheiros = usuarios.filter(u => ['engenheiro', 'admin', 'master'].includes(u.perfil));
     
     // Preencher select de engenheiros
     const engSelect = document.getElementById('obra-eng');
@@ -1537,9 +1537,9 @@ async function renderFVS(m){
     m.innerHTML=`
       <div class="page-header">
         <div><div class="page-title">FVS</div><div class="page-sub">${emAndamento.length} em andamento • ${encerradas.length} encerradas • ${aprovadas.length} aprovadas${usuarioAtual?.perfil==='admin'&&preExecutivas.length?` • ${preExecutivas.length} pré-executivas`:''}${obraAtual?` · ${obraAtual.nome}`:''}</div></div>
-        <button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>
+        ${['admin','master'].includes(usuarioAtual?.perfil) ? `<button class="btn btn-primary" onclick="abrirModalNovaFVS()">+ Nova FVS</button>` : ''}
       </div>
-      
+
       <!-- Cards de Resumo / Filtros -->
       <div class="kpi-grid">
         <div class="kpi-card" id="fvs-kpi-pre" onclick="filtrarFVS('pre-executivo')" style="cursor:pointer;border-top:2px solid #3730a3" title="Filtrar por Pré-executivas">
@@ -1767,6 +1767,10 @@ function calcularICP(fvs) {
 }
 
 function abrirModalNovaFVS() {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
+    toast('Criação de FVS restrita ao perfil Admin ou Master', 'error');
+    return;
+  }
   // Verificar se há uma obra selecionada
   if (!obraSelecionadaId) {
     toast('Por favor, selecione uma obra no menu antes de criar uma nova FVS', 'error');
@@ -2175,7 +2179,7 @@ async function renderGradeFVS() {
                 Encerrada: ${new Date(fvs.fechamento).toLocaleDateString('pt-BR')}
               </span>
             ` : ''}
-            ${['admin','engenheiro'].includes(usuarioAtual?.perfil) ? `
+            ${['admin','master'].includes(usuarioAtual?.perfil) ? `
               <button onclick="editarEngenheiroFVS('${fvs.id}')" title="Alterar engenheiro responsável"
                 style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font-mono);font-weight:600;letter-spacing:.4px;padding:4px 10px;border-radius:12px;border:1px solid #334155;background:#1e293b;color:#94a3b8;cursor:pointer;transition:all .15s"
                 onmouseover="this.style.borderColor='#60a5fa';this.style.color='#60a5fa'" onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">
@@ -3371,7 +3375,7 @@ async function aprovarFVS(fvsId) {
 }
 
 async function editarEngenheiroFVS(fvsId) {
-  if (!['admin','engenheiro'].includes(usuarioAtual?.perfil)) {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
     toast('Sem permissão para alterar o engenheiro responsável.', 'error');
     return;
   }
@@ -5016,7 +5020,7 @@ async function renderTemplates(m){
       return servicoA.localeCompare(servicoB);
     });
     
-    const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
+    const pA = ['master', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
     
     m.innerHTML=`
       <div class="page-header">
@@ -5718,7 +5722,7 @@ async function renderTemplatesIS(m) {
     });
 
     templates.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
-    const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
+    const pA = ['master', 'admin', 'engenheiro'].includes(usuarioAtual.perfil);
 
     m.innerHTML = `
       <div class="page-header">
@@ -6015,7 +6019,7 @@ async function renderAplicacaoIS(m) {
 
     fvsList.sort((a, b) => (a.servico || '').localeCompare(b.servico || ''));
     const totalApls = aplicacoes.filter(a => fvsList.some(f => f.id === a.fvs_id)).length;
-    const pA = ['diretor', 'admin', 'engenheiro'].includes(usuarioAtual?.perfil);
+    const pA = ['master', 'admin', 'engenheiro'].includes(usuarioAtual?.perfil);
 
     m.innerHTML = `
       <div class="page-header">
@@ -8853,7 +8857,7 @@ function criarModalUsuario(){
               <select id="usuario-perfil">
                 <option value="tecnico">Técnico</option>
                 <option value="engenheiro">Engenheiro</option>
-                <option value="diretor">Diretor</option>
+                <option value="master">Master</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
@@ -10124,11 +10128,11 @@ async function renderUsuarios(m){
     const obraMap = Object.fromEntries(todasObras.map(o => [o.id, o]));
 
     // Verificar se o usuário atual tem permissão de admin
-    const pA = usuarioAtual && ['diretor', 'admin'].includes(usuarioAtual.perfil);
+    const pA = usuarioAtual && ['master', 'admin'].includes(usuarioAtual.perfil);
 
     // Helper: exibir obras de um usuário
     const _obrasLabel = (u) => {
-      const isAdminDir = ['admin','diretor'].includes(u.perfil);
+      const isAdminDir = ['admin','master'].includes(u.perfil);
       if (isAdminDir) return `<span style="font-size:11px;color:var(--text3);font-style:italic">Todas (admin)</span>`;
       const ids = u.obras_permitidas;
       if (!ids || ids.length === 0) return `<span style="font-size:11px;color:var(--text3)">Todas</span>`;
@@ -10168,7 +10172,7 @@ async function renderUsuarios(m){
                   </td>
                   <td>
                     ${_obrasLabel(u)}
-                    ${pA && !['admin','diretor'].includes(u.perfil) ? `
+                    ${pA && !['admin','master'].includes(u.perfil) ? `
                       <button class="btn btn-ghost btn-xs" style="margin-left:6px"
                         onclick='abrirModalObrasUsuario("${u.id}", "${u.nome.replace(/"/g,'&quot;')}", ${JSON.stringify(u.obras_permitidas||[])})'>
                         ✏️
@@ -10196,7 +10200,7 @@ async function renderUsuarios(m){
         <div style="font-weight:600;margin-bottom:8px;color:var(--text)">📋 Permissões por perfil de usuário:</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;line-height:1.6">
           <div>
-            <strong style="color:var(--accent)">👑 ADMIN/DIRETOR:</strong><br>
+            <strong style="color:var(--accent)">👑 ADMIN/MASTER:</strong><br>
             • Gerenciar todos os usuários<br>
             • Criar, editar e encerrar obras<br>
             • Criar e gerenciar templates FVS<br>
@@ -10238,7 +10242,7 @@ async function renderUsuariosInativos(m){
     console.log('📋 DEBUG: Usuários inativos encontrados:', usuariosInativos.length);
     
     // Verificar se o usuário atual tem permissão de admin
-    const pA = usuarioAtual && ['diretor', 'admin'].includes(usuarioAtual.perfil);
+    const pA = usuarioAtual && ['master', 'admin'].includes(usuarioAtual.perfil);
     
     m.innerHTML=`
       <div class="page-header">
