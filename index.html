@@ -10233,7 +10233,7 @@ async function renderUsuarios(m){
       const isAdminDir = ['admin','master'].includes(u.perfil);
       if (isAdminDir) return `<span style="font-size:11px;color:var(--text3);font-style:italic">Todas (admin)</span>`;
       const ids = u.obras_permitidas;
-      if (!ids || ids.length === 0) return `<span style="font-size:11px;color:var(--red,#e05)">Nenhuma</span>`;
+      if (!ids || ids.length === 0) return `<span style="font-size:11px;color:var(--text3)">Nenhuma</span>`;
       return `<span style="font-size:11px;color:var(--accent);font-weight:600">${ids.length} obra${ids.length!==1?'s':''}</span>`;
     };
 
