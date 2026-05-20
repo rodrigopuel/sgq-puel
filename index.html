@@ -1446,8 +1446,9 @@ async function salvarObra(obraId) {
     renderObras(document.getElementById('main-content'));
     
   } catch (error) {
-    console.error('Erro ao salvar obra:', error);
-    toast('Erro ao salvar obra', 'error');
+    const msg = error?.message || error?.error_description || JSON.stringify(error);
+    console.error('Erro ao salvar obra:', msg, error);
+    toast('Erro ao salvar obra: ' + msg, 'error');
   }
 }
 
