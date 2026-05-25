@@ -9855,17 +9855,17 @@ function renderLocaisTree(locais) {
           const setores  = dados.interno[pav] || {};
           const isFirst  = idx === 0;
           const isLast   = idx === pavs.length - 1;
-          const pavJson  = JSON.stringify(pav);
-          const torreJson = JSON.stringify(torre);
+          const pavAttr   = JSON.stringify(pav).replace(/"/g, '&quot;');
+          const torreAttr = JSON.stringify(torre).replace(/"/g, '&quot;');
           html += `<div style="margin-left:16px;margin-bottom:6px">
             <div style="font-size:12px;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:6px">
               📐 ${pav}
               <span style="display:inline-flex;gap:2px">
-                <button onclick="moverPavimento(${torreJson},${pavJson},'up')"
+                <button onclick="moverPavimento(${torreAttr},${pavAttr},'up')"
                   ${isFirst ? 'disabled' : ''}
-                  style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isFirst ? 'opacity:.3;cursor:default;pointer-events:none' : 'hover:background:var(--bg3)'}"
+                  style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isFirst ? 'opacity:.3;cursor:default;pointer-events:none' : ''}"
                   title="Mover para cima">↑</button>
-                <button onclick="moverPavimento(${torreJson},${pavJson},'down')"
+                <button onclick="moverPavimento(${torreAttr},${pavAttr},'down')"
                   ${isLast ? 'disabled' : ''}
                   style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isLast ? 'opacity:.3;cursor:default;pointer-events:none' : ''}"
                   title="Mover para baixo">↓</button>
