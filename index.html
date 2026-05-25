@@ -9761,43 +9761,128 @@ async function localSalvarInline(containerId, torre, tipo, pavimento, setor) {
   }
 }
 
-async function moverUnidade(id, dir) {
+// ── Estado global drag-and-drop de locais ────────────────────────────────────
+let _dragPavInfo = null; // { torre, pav }
+let _dragUnitId  = null;
+
+function _pavDragStart(e, torre, pav) {
+  _dragPavInfo = { torre, pav };
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.currentTarget && (e.currentTarget.style.opacity = '0.4'), 0);
+}
+function _pavDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  _dragPavInfo = null;
+}
+function _pavDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.style.outline = '2px dashed var(--accent)';
+  e.currentTarget.style.borderRadius = 'var(--radius)';
+}
+function _pavDragLeave(e) { e.currentTarget.style.outline = ''; }
+async function _pavDrop(e, torre, targetPav) {
+  e.preventDefault();
+  e.currentTarget.style.outline = '';
+  const src = _dragPavInfo; _dragPavInfo = null;
+  if (!src || src.torre !== torre || src.pav === targetPav) return;
+  await _swapPavimentos(torre, src.pav, targetPav);
+}
+
+function _unitDragStart(e, id) {
+  _dragUnitId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.currentTarget && (e.currentTarget.style.opacity = '0.4'), 0);
+}
+function _unitDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  _dragUnitId = null;
+}
+function _unitDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.style.outline = '2px dashed var(--accent)';
+  e.currentTarget.style.borderRadius = '6px';
+}
+function _unitDragLeave(e) { e.currentTarget.style.outline = ''; }
+async function _unitDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.style.outline = '';
+  const srcId = _dragUnitId; _dragUnitId = null;
+  if (!srcId || srcId === targetId) return;
+  await _swapUnidades(srcId, targetId);
+}
+
+async function _swapPavimentos(torre, pavA, pavB) {
+  try {
+    const client = await esperarSupabase();
+    const locais  = await client.getLocais(obraSelecionadaId);
+    const internos = locais.filter(l => l.torre === torre && l.tipo === 'interno');
+    const seen = new Map();
+    internos.forEach(l => { const p = l.pavimento||'—'; if (!seen.has(p)) seen.set(p, l.ordem??0); });
+    const pavList = [...seen.entries()].sort((a,b) => a[1]-b[1]);
+    // Normaliza
+    for (let i = 0; i < pavList.length; i++) {
+      const [p] = pavList[i];
+      for (const l of internos.filter(l => (l.pavimento||'—') === p))
+        if ((l.ordem??0) !== i) await client.update('locais', l.id, { ordem: i });
+      pavList[i] = [p, i];
+    }
+    const idxA = pavList.findIndex(([p]) => p === pavA);
+    const idxB = pavList.findIndex(([p]) => p === pavB);
+    if (idxA === -1 || idxB === -1) return;
+    const [, oA] = pavList[idxA], [, oB] = pavList[idxB];
+    for (const l of internos.filter(l => l.pavimento === pavA || l.pavimento === pavB))
+      await client.update('locais', l.id, { ordem: l.pavimento === pavA ? oB : oA });
+    renderLocais(document.getElementById('main-content'));
+  } catch(e) { toast('Erro ao reordenar: ' + e.message, 'error'); }
+}
+
+async function _swapUnidades(idA, idB) {
   try {
     const client = await esperarSupabase();
     const locais = await client.getLocais(obraSelecionadaId);
-
-    // Encontra o local clicado e seus irmãos no mesmo setor
-    const alvo = locais.find(l => l.id === id);
-    if (!alvo) return;
-    const irmaos = locais
-      .filter(l => l.torre === alvo.torre && l.tipo === 'interno' && l.pavimento === alvo.pavimento && l.setor === alvo.setor)
-      .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
-
-    // Normaliza seq para 0,1,2,... caso haja duplicatas (ex: todos = 0 do DEFAULT)
-    const seqAtual = irmaos.map(l => l.seq ?? 0);
-    const precisa  = seqAtual.some((s, i) => s !== i);
-    if (precisa) {
-      for (let i = 0; i < irmaos.length; i++) {
-        await client.update('locais', irmaos[i].id, { seq: i });
-        irmaos[i] = { ...irmaos[i], seq: i };
-      }
+    const lA = locais.find(l => l.id === idA);
+    const lB = locais.find(l => l.id === idB);
+    if (!lA || !lB) return;
+    if (lA.setor !== lB.setor || lA.pavimento !== lB.pavimento || lA.torre !== lB.torre) {
+      toast('Só é possível reordenar unidades do mesmo setor', 'error'); return;
     }
-
-    const idx = irmaos.findIndex(l => l.id === id);
-    if (idx === -1) return;
-    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= irmaos.length) return;
-
-    const seqA = irmaos[idx].seq ?? idx;
-    const seqB = irmaos[targetIdx].seq ?? targetIdx;
-    await client.update('locais', irmaos[idx].id,       { seq: seqB });
-    await client.update('locais', irmaos[targetIdx].id, { seq: seqA });
-
+    const irmaos = locais
+      .filter(l => l.torre===lA.torre && l.tipo==='interno' && l.pavimento===lA.pavimento && l.setor===lA.setor)
+      .sort((a,b) => (a.seq??0)-(b.seq??0));
+    // Normaliza
+    for (let i = 0; i < irmaos.length; i++)
+      if ((irmaos[i].seq??0) !== i) { await client.update('locais', irmaos[i].id, { seq: i }); irmaos[i] = {...irmaos[i], seq: i}; }
+    const fa = irmaos.find(l => l.id === idA);
+    const fb = irmaos.find(l => l.id === idB);
+    if (!fa || !fb) return;
+    await client.update('locais', idA, { seq: fb.seq });
+    await client.update('locais', idB, { seq: fa.seq });
     renderLocais(document.getElementById('main-content'));
-  } catch(e) {
-    console.error('Erro ao mover unidade:', e);
-    toast('Erro ao reordenar: ' + e.message, 'error');
-  }
+  } catch(e) { toast('Erro ao reordenar: ' + e.message, 'error'); }
+}
+
+// Mantidos para compatibilidade (usados pelos botoes — agora removidos, mas seguros)
+async function moverPavimento(torre, pav, dir) {
+  const client = await esperarSupabase();
+  const locais  = await client.getLocais(obraSelecionadaId);
+  const internos = locais.filter(l => l.torre === torre && l.tipo === 'interno');
+  const seen = new Map();
+  internos.forEach(l => { const p = l.pavimento||'—'; if (!seen.has(p)) seen.set(p, l.ordem??0); });
+  const pavList = [...seen.entries()].sort((a,b) => a[1]-b[1]);
+  const idx = pavList.findIndex(([p]) => p === pav);
+  if (idx === -1) return;
+  const ti = dir === 'up' ? idx-1 : idx+1;
+  if (ti < 0 || ti >= pavList.length) return;
+  await _swapPavimentos(torre, pav, pavList[ti][0]);
+}
+async function moverUnidade(id, dir) {
+  const client = await esperarSupabase();
+  const locais = await client.getLocais(obraSelecionadaId);
+  const alvo = locais.find(l => l.id === id); if (!alvo) return;
+  const irmaos = locais.filter(l => l.torre===alvo.torre&&l.tipo==='interno'&&l.pavimento===alvo.pavimento&&l.setor===alvo.setor).sort((a,b)=>(a.seq??0)-(b.seq??0));
+  const idx = irmaos.findIndex(l => l.id === id); if (idx === -1) return;
+  const ti = dir === 'up' ? idx-1 : idx+1; if (ti < 0 || ti >= irmaos.length) return;
+  await _swapUnidades(id, irmaos[ti].id);
 }
 
 async function renderLocais(m) {
@@ -9895,23 +9980,18 @@ function renderLocaisTree(locais) {
         const pavs = pavOrder[torre] || Object.keys(dados.interno);
         pavs.forEach((pav, idx) => {
           const setores  = dados.interno[pav] || {};
-          const isFirst  = idx === 0;
-          const isLast   = idx === pavs.length - 1;
           const pavAttr   = JSON.stringify(pav).replace(/"/g, '&quot;');
           const torreAttr = JSON.stringify(torre).replace(/"/g, '&quot;');
-          html += `<div style="margin-left:16px;margin-bottom:6px">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:6px">
+          html += `<div draggable="true"
+            ondragstart="_pavDragStart(event,${torreAttr},${pavAttr})"
+            ondragend="_pavDragEnd(event)"
+            ondragover="_pavDragOver(event)"
+            ondragleave="_pavDragLeave(event)"
+            ondrop="_pavDrop(event,${torreAttr},${pavAttr})"
+            style="margin-left:16px;margin-bottom:6px;border:2px solid transparent;border-radius:var(--radius);transition:outline .1s">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:6px;cursor:grab">
+              <span style="font-size:14px;opacity:.4;user-select:none">⠿</span>
               📐 ${pav}
-              <span style="display:inline-flex;gap:2px">
-                <button onclick="moverPavimento(${torreAttr},${pavAttr},'up')"
-                  ${isFirst ? 'disabled' : ''}
-                  style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isFirst ? 'opacity:.3;cursor:default;pointer-events:none' : ''}"
-                  title="Mover para cima">↑</button>
-                <button onclick="moverPavimento(${torreAttr},${pavAttr},'down')"
-                  ${isLast ? 'disabled' : ''}
-                  style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isLast ? 'opacity:.3;cursor:default;pointer-events:none' : ''}"
-                  title="Mover para baixo">↓</button>
-              </span>
             </div>`;
           Object.entries(setores).forEach(([setor, rows]) => {
             // Ordena unidades pelo campo seq
@@ -9920,25 +10000,18 @@ function renderLocaisTree(locais) {
             html += `<div style="margin-left:16px;margin-bottom:4px">
               <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Setor ${setor}</div>
               <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-left:12px">
-                ${sorted.map((r, ui) => {
-                  const isFirst = ui === 0;
-                  const isLast  = ui === sorted.length - 1;
-                  return `
-                  <div style="display:flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 6px 2px 8px;font-size:12px;color:var(--text2)">
-                    <span style="display:inline-flex;gap:1px;margin-right:3px">
-                      <button onclick="moverUnidade('${r.id}','up')"
-                        ${isFirst ? 'disabled' : ''}
-                        style="background:none;border:none;padding:0 2px;font-size:10px;cursor:pointer;color:var(--text3);${isFirst ? 'opacity:.3;pointer-events:none' : ''}"
-                        title="Mover para esquerda">←</button>
-                      <button onclick="moverUnidade('${r.id}','down')"
-                        ${isLast ? 'disabled' : ''}
-                        style="background:none;border:none;padding:0 2px;font-size:10px;cursor:pointer;color:var(--text3);${isLast ? 'opacity:.3;pointer-events:none' : ''}"
-                        title="Mover para direita">→</button>
-                    </span>
+                ${sorted.map(r => `
+                  <div draggable="true"
+                    ondragstart="_unitDragStart(event,'${r.id}')"
+                    ondragend="_unitDragEnd(event)"
+                    ondragover="_unitDragOver(event)"
+                    ondragleave="_unitDragLeave(event)"
+                    ondrop="_unitDrop(event,'${r.id}')"
+                    style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 6px 2px 8px;font-size:12px;color:var(--text2);cursor:grab;transition:outline .1s">
+                    <span style="opacity:.35;font-size:11px;user-select:none">⠿</span>
                     ${r.unidade}
-                    <button onclick="excluirLocal('${r.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0 0 0 4px;line-height:1" title="Remover">✕</button>
-                  </div>`;
-                }).join('')}
+                    <button onclick="excluirLocal('${r.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0 0 0 2px;line-height:1" title="Remover">✕</button>
+                  </div>`).join('')}
                 <div id="${inlineIdUnid}" style="display:inline-flex;align-items:center;gap:4px">
                   <button onclick="localMostrarInputInline('${inlineIdUnid}','${torre}','interno','${pav}','${setor}')" style="background:var(--bg3);border:1px dashed var(--border);border-radius:6px;padding:2px 10px;font-size:12px;color:var(--text3);cursor:pointer" title="Adicionar unidade">+ add</button>
                 </div>
