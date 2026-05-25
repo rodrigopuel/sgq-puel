@@ -9727,15 +9727,15 @@ async function localSalvarInline(containerId, torre, tipo, pavimento, setor) {
       return;
     }
 
-    // Calcula ordem: reutiliza a do pavimento se já existe, senão pega max+1
+    // Calcula ordem: reutiliza a do pavimento se já existe, senão usa nº de pavimentos distintos
     let ordem = 0;
     if (tipo === 'interno') {
       const pavRows = existentes.filter(l => l.torre === torre && l.tipo === 'interno' && l.pavimento === pavimento);
       if (pavRows.length > 0) {
         ordem = pavRows[0].ordem ?? 0;
       } else {
-        const maxOrdem = Math.max(0, ...existentes.filter(l => l.tipo === 'interno').map(l => l.ordem ?? 0));
-        ordem = maxOrdem + 1;
+        const pavDistintos = new Set(existentes.filter(l => l.torre === torre && l.tipo === 'interno').map(l => l.pavimento));
+        ordem = pavDistintos.size;
       }
     }
 
@@ -9918,16 +9918,32 @@ async function moverPavimento(torre, pav, dir) {
   try {
     const client = await esperarSupabase();
     const locais = await client.getLocais(obraSelecionadaId);
-
-    // Monta lista de pavimentos ordenada pela coluna `ordem`
     const internos = locais.filter(l => l.torre === torre && l.tipo === 'interno');
-    const pavOrdreMap = {};
+
+    // Monta lista única de pavimentos preservando a ordem de inserção para valores iguais
+    const seen = new Map();
     internos.forEach(l => {
       const p = l.pavimento || '—';
-      if (!(p in pavOrdreMap)) pavOrdreMap[p] = l.ordem ?? 0;
+      if (!seen.has(p)) seen.set(p, l.ordem ?? 0);
     });
-    const pavList = Object.entries(pavOrdreMap).sort((a, b) => a[1] - b[1]);
+    // Ordena pelo valor de ordem atual
+    const pavList = [...seen.entries()].sort((a, b) => a[1] - b[1]);
 
+    // ── Passo 1: Normaliza ordens para 0,1,2,... caso haja valores duplicados ──
+    const ordemAtual = pavList.map(([, o]) => o);
+    const normalizados = pavList.map((_, i) => i);
+    const precisa = ordemAtual.some((o, i) => o !== normalizados[i]);
+    if (precisa) {
+      for (let i = 0; i < pavList.length; i++) {
+        const [p] = pavList[i];
+        for (const l of internos.filter(l => (l.pavimento || '—') === p)) {
+          await client.update('locais', l.id, { ordem: i });
+        }
+        pavList[i] = [pavList[i][0], i]; // atualiza em memória
+      }
+    }
+
+    // ── Passo 2: Encontra o pavimento e seu vizinho ──
     const idx = pavList.findIndex(([p]) => p === pav);
     if (idx === -1) return;
     const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
@@ -9936,9 +9952,8 @@ async function moverPavimento(torre, pav, dir) {
     const [pavA, ordemA] = pavList[idx];
     const [pavB, ordemB] = pavList[targetIdx];
 
-    // Troca as ordens de todos os locais dos dois pavimentos
-    const toUpdate = internos.filter(l => l.pavimento === pavA || l.pavimento === pavB);
-    for (const l of toUpdate) {
+    // ── Passo 3: Troca as ordens ──
+    for (const l of internos.filter(l => l.pavimento === pavA || l.pavimento === pavB)) {
       await client.update('locais', l.id, { ordem: l.pavimento === pavA ? ordemB : ordemA });
     }
 
@@ -10121,15 +10136,15 @@ async function localSalvar() {
       return;
     }
 
-    // Calcula ordem para o novo pavimento (reutiliza se já existe, senão max+1)
+    // Calcula ordem para o novo pavimento (reutiliza se já existe, senão usa nº de pavimentos distintos)
     let ordemLote = 0;
     if (f.tipo === 'interno') {
       const pavRows = existentes.filter(l => l.torre === f.torre && l.tipo === 'interno' && l.pavimento === f.pavimento);
       if (pavRows.length > 0) {
         ordemLote = pavRows[0].ordem ?? 0;
       } else {
-        const maxOrdem = Math.max(0, ...existentes.filter(l => l.tipo === 'interno').map(l => l.ordem ?? 0));
-        ordemLote = maxOrdem + 1;
+        const pavDistintos = new Set(existentes.filter(l => l.torre === f.torre && l.tipo === 'interno').map(l => l.pavimento));
+        ordemLote = pavDistintos.size;
       }
     }
 
