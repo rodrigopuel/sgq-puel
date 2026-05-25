@@ -9727,6 +9727,18 @@ async function localSalvarInline(containerId, torre, tipo, pavimento, setor) {
       return;
     }
 
+    // Calcula ordem: reutiliza a do pavimento se já existe, senão pega max+1
+    let ordem = 0;
+    if (tipo === 'interno') {
+      const pavRows = existentes.filter(l => l.torre === torre && l.tipo === 'interno' && l.pavimento === pavimento);
+      if (pavRows.length > 0) {
+        ordem = pavRows[0].ordem ?? 0;
+      } else {
+        const maxOrdem = Math.max(0, ...existentes.filter(l => l.tipo === 'interno').map(l => l.ordem ?? 0));
+        ordem = maxOrdem + 1;
+      }
+    }
+
     const row = {
       obra_id:   obraSelecionadaId,
       torre:     torre,
@@ -9735,6 +9747,7 @@ async function localSalvarInline(containerId, torre, tipo, pavimento, setor) {
       setor:     tipo === 'interno' ? setor     : null,
       unidade:   tipo === 'interno' ? valor     : null,
       fachada:   tipo === 'externo' ? valor     : null,
+      ordem,
     };
     await client.insert('locais', row);
     toast(`"${valor}" adicionado com sucesso`, 'success');
@@ -9799,18 +9812,25 @@ function renderLocaisTree(locais) {
       <div class="empty-desc">Clique em "+ Novo Local" para começar.</div>
     </div>`;
 
-  // Agrupa hierarquicamente
+  // Ordena por ordem antes de agrupar para garantir sequência correta
+  const sorted = [...locais].sort((a, b) => (a.ordem ?? 9999) - (b.ordem ?? 9999));
+
   const tree = {};
-  locais.forEach(l => {
+  const pavOrder = {}; // { torre: [pav1, pav2, ...] } na ordem correta
+
+  sorted.forEach(l => {
     const torre = l.torre || '—';
     const tipo  = l.tipo  || '—';
-    if (!tree[torre]) tree[torre] = {};
+    if (!tree[torre]) { tree[torre] = {}; pavOrder[torre] = []; }
     if (!tree[torre][tipo]) tree[torre][tipo] = { interno: {}, externo: [] };
 
     if (tipo === 'interno') {
       const pav  = l.pavimento || '—';
       const set_ = l.setor     || '—';
-      if (!tree[torre][tipo].interno[pav]) tree[torre][tipo].interno[pav] = {};
+      if (!tree[torre][tipo].interno[pav]) {
+        tree[torre][tipo].interno[pav] = {};
+        if (!pavOrder[torre].includes(pav)) pavOrder[torre].push(pav);
+      }
       if (!tree[torre][tipo].interno[pav][set_]) tree[torre][tipo].interno[pav][set_] = [];
       tree[torre][tipo].interno[pav][set_].push(l);
     } else {
@@ -9830,9 +9850,27 @@ function renderLocaisTree(locais) {
         <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono);margin-bottom:6px">${tipo === 'interno' ? '🏠 Interno' : '🌳 Externo'}</div>`;
 
       if (tipo === 'interno') {
-        Object.entries(dados.interno).forEach(([pav, setores]) => {
+        const pavs = pavOrder[torre] || Object.keys(dados.interno);
+        pavs.forEach((pav, idx) => {
+          const setores  = dados.interno[pav] || {};
+          const isFirst  = idx === 0;
+          const isLast   = idx === pavs.length - 1;
+          const pavJson  = JSON.stringify(pav);
+          const torreJson = JSON.stringify(torre);
           html += `<div style="margin-left:16px;margin-bottom:6px">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">📐 ${pav}</div>`;
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:6px">
+              📐 ${pav}
+              <span style="display:inline-flex;gap:2px">
+                <button onclick="moverPavimento(${torreJson},${pavJson},'up')"
+                  ${isFirst ? 'disabled' : ''}
+                  style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isFirst ? 'opacity:.3;cursor:default;pointer-events:none' : 'hover:background:var(--bg3)'}"
+                  title="Mover para cima">↑</button>
+                <button onclick="moverPavimento(${torreJson},${pavJson},'down')"
+                  ${isLast ? 'disabled' : ''}
+                  style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;cursor:pointer;color:var(--text3);${isLast ? 'opacity:.3;cursor:default;pointer-events:none' : ''}"
+                  title="Mover para baixo">↓</button>
+              </span>
+            </div>`;
           Object.entries(setores).forEach(([setor, rows]) => {
             const unidades = rows.map(r => r.unidade).filter(Boolean);
             const inlineIdUnid = `inline-${torre}-interno-${pav}-${setor}`.replace(/\s/g,'_');
@@ -9874,6 +9912,41 @@ function renderLocaisTree(locais) {
   });
 
   return `<div class="chart-wrap" style="padding:16px 20px">${html}</div>`;
+}
+
+async function moverPavimento(torre, pav, dir) {
+  try {
+    const client = await esperarSupabase();
+    const locais = await client.getLocais(obraSelecionadaId);
+
+    // Monta lista de pavimentos ordenada pela coluna `ordem`
+    const internos = locais.filter(l => l.torre === torre && l.tipo === 'interno');
+    const pavOrdreMap = {};
+    internos.forEach(l => {
+      const p = l.pavimento || '—';
+      if (!(p in pavOrdreMap)) pavOrdreMap[p] = l.ordem ?? 0;
+    });
+    const pavList = Object.entries(pavOrdreMap).sort((a, b) => a[1] - b[1]);
+
+    const idx = pavList.findIndex(([p]) => p === pav);
+    if (idx === -1) return;
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= pavList.length) return;
+
+    const [pavA, ordemA] = pavList[idx];
+    const [pavB, ordemB] = pavList[targetIdx];
+
+    // Troca as ordens de todos os locais dos dois pavimentos
+    const toUpdate = internos.filter(l => l.pavimento === pavA || l.pavimento === pavB);
+    for (const l of toUpdate) {
+      await client.update('locais', l.id, { ordem: l.pavimento === pavA ? ordemB : ordemA });
+    }
+
+    renderLocais(document.getElementById('main-content'));
+  } catch(e) {
+    console.error('Erro ao mover pavimento:', e);
+    toast('Erro ao reordenar: ' + e.message, 'error');
+  }
 }
 
 function renderLocalFormStep() {
@@ -10048,6 +10121,18 @@ async function localSalvar() {
       return;
     }
 
+    // Calcula ordem para o novo pavimento (reutiliza se já existe, senão max+1)
+    let ordemLote = 0;
+    if (f.tipo === 'interno') {
+      const pavRows = existentes.filter(l => l.torre === f.torre && l.tipo === 'interno' && l.pavimento === f.pavimento);
+      if (pavRows.length > 0) {
+        ordemLote = pavRows[0].ordem ?? 0;
+      } else {
+        const maxOrdem = Math.max(0, ...existentes.filter(l => l.tipo === 'interno').map(l => l.ordem ?? 0));
+        ordemLote = maxOrdem + 1;
+      }
+    }
+
     for (const ultimo of f.ultimos) {
       const row = {
         obra_id:   obraSelecionadaId,
@@ -10057,6 +10142,7 @@ async function localSalvar() {
         setor:     f.tipo === 'interno' ? f.setor     : null,
         unidade:   f.tipo === 'interno' ? ultimo       : null,
         fachada:   f.tipo === 'externo' ? ultimo       : null,
+        ordem:     ordemLote,
       };
       await client.insert('locais', row);
     }
