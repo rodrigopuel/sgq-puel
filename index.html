@@ -1899,13 +1899,24 @@ async function carregarDadosTemplateFVS() {
 function renderLocaisSelectorFVS(locais) {
   if (!locais.length) return `<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Nenhum local cadastrado para esta obra.<br>Acesse <strong>Cadastros → Locais</strong> para adicionar.</div>`;
 
+  // Ordena locais respeitando a ordem definida no cadastro (ordem = pavimento, seq = unidade)
+  const locaisOrdenados = [...locais].sort((a, b) => {
+    const torreComp = (a.torre||'').localeCompare(b.torre||'');
+    if (torreComp !== 0) return torreComp;
+    const tipoComp  = (a.tipo||'').localeCompare(b.tipo||'');
+    if (tipoComp  !== 0) return tipoComp;
+    const ordemComp = (a.ordem ?? 9999) - (b.ordem ?? 9999);
+    if (ordemComp !== 0) return ordemComp;
+    return (a.seq ?? 9999) - (b.seq ?? 9999);
+  });
+
   // Monta path string e agrupa hierarquicamente
   const toPath = l => l.tipo === 'interno'
     ? [l.torre, 'Interno', l.pavimento, l.setor ? 'Setor ' + l.setor : '', l.unidade].filter(Boolean).join(' / ')
     : [l.torre, 'Externo', l.fachada].filter(Boolean).join(' / ');
 
   const tree = {};
-  locais.forEach(l => {
+  locaisOrdenados.forEach(l => {
     const torre = l.torre || '—';
     const tipo  = l.tipo  || '—';
     if (!tree[torre]) tree[torre] = {};
