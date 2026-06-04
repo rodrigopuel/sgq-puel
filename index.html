@@ -6986,11 +6986,12 @@ async function renderRelatorioNC(m) {
   m.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">Carregando...</div>`;
   try {
     const client = await esperarSupabase();
-    const [todasOcorrencias, fvsListAll, obras, usuarios] = await Promise.all([
+    const [todasOcorrencias, fvsListAll, obras, usuarios, locaisDb] = await Promise.all([
       client.getOcorrencias(),
       client.getFVS(),
       client.getObras(),
-      client.getUsuarios()
+      client.getUsuarios(),
+      client.getLocais(obraSelecionadaId)
     ]);
 
     // Filtra FVS pela obra selecionada
@@ -7021,13 +7022,22 @@ async function renderRelatorioNC(m) {
       };
     });
 
-    // Serviços: TODOS os tipos de FVS da obra (independente de ter NCs)
-    const fvsCods     = [...new Set(fvsDaObra.map(f => f.cod).filter(Boolean))].sort();
-    const servicos    = [...new Set(fvsDaObra.map(f => f.servico).filter(Boolean))].sort();
-    // Locais: únicos presentes nas NCs da obra
-    const locaisUnicos = [...new Set(_relNcDados.map(r => r.local).filter(Boolean))].sort();
-    window._rncLocaisAll = locaisUnicos; // usado pelas funções de cascata
-    const torresOpc = [...new Set(locaisUnicos.map(p => p.split(' / ')[0]))].sort();
+    const fvsCods  = [...new Set(fvsDaObra.map(f => f.cod).filter(Boolean))].sort();
+    const servicos = [...new Set(fvsDaObra.map(f => f.servico).filter(Boolean))].sort();
+
+    // Set de paths que têm NC — usado para filtrar a árvore
+    const locaisSet = new Set(_relNcDados.map(r => r.local).filter(Boolean));
+
+    // Locais ordenados por ordem (pavimento) e seq (unidade)
+    const locaisOrdenados = [...locaisDb].sort((a, b) => {
+      const t = (a.torre||'').localeCompare(b.torre||'');
+      if (t) return t;
+      const tp = (a.tipo||'').localeCompare(b.tipo||'');
+      if (tp) return tp;
+      const o = (a.ordem??9999) - (b.ordem??9999);
+      if (o) return o;
+      return (a.seq??9999) - (b.seq??9999);
+    });
 
     m.innerHTML = `
       <div class="page-header">
@@ -7074,14 +7084,7 @@ async function renderRelatorioNC(m) {
             </div>
           </div>
 
-          ${_rncDropdown('rnc-torre','Torre', torresOpc.map(t =>
-            `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--text2)" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-              <input type="checkbox" class="rnc-torre-chk" value="${t}" onchange="_rncTorreChange()" style="width:13px;height:13px;accent-color:var(--accent);flex-shrink:0"> ${t}
-            </label>`).join(''))}
-
-          ${_rncDropdown('rnc-pav','Pavimento', '<div id="rnc-pav-options" style="padding:6px 0"><div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione uma torre primeiro</div></div>', true)}
-
-          ${_rncDropdown('rnc-unid','Unidade', '<div id="rnc-unid-options" style="padding:6px 0"><div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione um pavimento primeiro</div></div>', true)}
+          ${_rncDropdown('rnc-local','Local', _rncBuildLocalTree(locaisOrdenados, locaisSet))}
 
           <div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
             <label style="font-size:10px;color:var(--text3)">Status</label>
@@ -7146,24 +7149,13 @@ function _relNcFiltrar() {
   const selSrv   = Array.from(document.querySelectorAll('.rnc-srv-chk:checked')).map(c => c.value);
   const filtrarSrv = chksSrv.length > 0 && selSrv.length > 0 && selSrv.length < chksSrv.length;
 
-  // Filtro de local em cascata
-  const selTorres = new Set(Array.from(document.querySelectorAll('.rnc-torre-chk:checked')).map(c => c.value));
-  const selPavs   = new Set(Array.from(document.querySelectorAll('.rnc-pav-chk:checked')).map(c => c.value));
-  const selUnids  = new Set(Array.from(document.querySelectorAll('.rnc-unid-chk:checked')).map(c => c.value));
+  // Filtro de local via árvore
+  const selLocais = new Set(Array.from(document.querySelectorAll('.rnc-local-chk:checked')).map(c => c.value));
 
   const resultado = _relNcDados.filter(r => {
     if (fvsFiltro  && !r.fvsCod.toLowerCase().includes(fvsFiltro)) return false;
     if (filtrarSrv && !selSrv.includes(r.fvsServico))               return false;
-    if (selUnids.size > 0) {
-      if (!selUnids.has(r.local)) return false;
-    } else if (selPavs.size > 0) {
-      const p = (r.local || '').split(' / ');
-      const pav = p[1] === 'Interno' ? p[2] : 'Externo';
-      if (!selPavs.has(pav)) return false;
-      if (selTorres.size > 0 && !selTorres.has(p[0])) return false;
-    } else if (selTorres.size > 0) {
-      if (!selTorres.has((r.local || '').split(' / ')[0])) return false;
-    }
+    if (selLocais.size > 0 && !selLocais.has(r.local))              return false;
     if (statusFiltro === 'aberta'    && (r.status !== 'aberta' || r.atrasada)) return false;
     if (statusFiltro === 'atrasada'  && !r.atrasada)                           return false;
     if (statusFiltro === 'encerrada' && r.status !== 'encerrada')              return false;
@@ -7245,11 +7237,9 @@ function _relNcLimpar() {
   document.querySelectorAll('.rnc-srv-chk').forEach(c => { c.checked = false; });
   const lblSrv = document.getElementById('rnc-servico-label');
   if (lblSrv) lblSrv.textContent = 'Todos';
-  // Torre → limpa e reseta cascata
-  document.querySelectorAll('.rnc-torre-chk').forEach(c => { c.checked = false; });
-  _rncSetLabel('rnc-torre', 'Todas');
-  _rncResetPav();
-  _rncResetUnid();
+  // Local
+  document.querySelectorAll('.rnc-local-chk').forEach(c => { c.checked = false; });
+  _rncSetLabel('rnc-local', 'Todos');
   _relNcFiltrar();
 }
 
@@ -7281,8 +7271,7 @@ function _rncPanelToggle(e, id) {
   const panel = document.getElementById(id + '-panel');
   if (!panel) return;
   const aberto = panel.style.display !== 'none';
-  // Fecha todos os outros painéis
-  ['rnc-torre','rnc-pav','rnc-unid','rnc-servico'].forEach(pid => {
+  ['rnc-local','rnc-servico'].forEach(pid => {
     const p = document.getElementById(pid + '-panel');
     if (p && p !== panel) p.style.display = 'none';
   });
@@ -7295,105 +7284,77 @@ function _rncSetLabel(id, txt) {
   if (el) el.textContent = txt;
 }
 
-function _rncTodosGrp(id) {
-  const cls = id === 'rnc-torre' ? 'rnc-torre-chk' : id === 'rnc-pav' ? 'rnc-pav-chk' : 'rnc-unid-chk';
-  document.querySelectorAll('.' + cls).forEach(c => { c.checked = true; });
-  if (id === 'rnc-torre') _rncTorreChange();
-  else if (id === 'rnc-pav') _rncPavChange();
-  else _rncUnidChange();
-}
+// ── Árvore de locais para filtro de NC ───────────────────────────────────────
 
-function _rncNenhumGrp(id) {
-  const cls = id === 'rnc-torre' ? 'rnc-torre-chk' : id === 'rnc-pav' ? 'rnc-pav-chk' : 'rnc-unid-chk';
-  document.querySelectorAll('.' + cls).forEach(c => { c.checked = false; });
-  if (id === 'rnc-torre') _rncTorreChange();
-  else if (id === 'rnc-pav') _rncPavChange();
-  else _rncUnidChange();
-}
+function _rncBuildLocalTree(locaisOrdenados, locaisSet) {
+  const toPath = l => l.tipo === 'interno'
+    ? [l.torre, 'Interno', l.pavimento, l.setor ? 'Setor ' + l.setor : '', l.unidade].filter(Boolean).join(' / ')
+    : [l.torre, 'Externo', l.fachada].filter(Boolean).join(' / ');
 
-// ── Cascata: Torre → Pav → Unidade ────────────────────────────────────────────
+  const comNC = locaisOrdenados.filter(l => locaisSet.has(toPath(l)));
 
-function _rncCheckboxItem(cls, value, onChange) {
-  const safe = value.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  return `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--text2)" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-    <input type="checkbox" class="${cls}" value="${safe}" onchange="${onChange}" style="width:13px;height:13px;accent-color:var(--accent);flex-shrink:0">
-    ${value}
-  </label>`;
-}
+  if (!comNC.length) return '<div style="padding:12px;font-size:12px;color:var(--text3)">Nenhum local com NC registrado</div>';
 
-// Versão para unidade: value = path completo, label = última parte
-function _rncCheckboxItemPath(cls, path, onChange) {
-  const safe  = path.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  const label = path.split(' / ').pop();
-  return `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--text2)" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-    <input type="checkbox" class="${cls}" value="${safe}" onchange="${onChange}" style="width:13px;height:13px;accent-color:var(--accent);flex-shrink:0">
-    ${label}
-  </label>`;
-}
-
-function _rncTorreChange() {
-  const sel = Array.from(document.querySelectorAll('.rnc-torre-chk:checked')).map(c => c.value);
-  const tot = document.querySelectorAll('.rnc-torre-chk').length;
-  _rncSetLabel('rnc-torre', sel.length === 0 || sel.length === tot ? 'Todas' : sel.length === 1 ? sel[0] : sel.length + ' torres');
-  _rncResetPav();
-  _rncResetUnid();
-  // Calcula pavimentos disponíveis para torres selecionadas
-  const torresAtivas = new Set(sel.length ? sel : (window._rncLocaisAll || []).map(p => p.split(' / ')[0]));
-  const pavs = [...new Set((window._rncLocaisAll || [])
-    .filter(p => torresAtivas.has(p.split(' / ')[0]))
-    .map(p => { const parts = p.split(' / '); return parts[1] === 'Interno' ? parts[2] : 'Externo'; })
-  )].sort((a, b) => a === 'Externo' ? 1 : b === 'Externo' ? -1 : a.localeCompare(b, undefined, {numeric:true}));
-  const opts = document.getElementById('rnc-pav-options');
-  if (opts) opts.innerHTML = pavs.length
-    ? pavs.map(v => _rncCheckboxItem('rnc-pav-chk', v, '_rncPavChange()')).join('')
-    : `<div style="padding:8px 10px;font-size:11px;color:var(--text3)">Nenhum pavimento</div>`;
-  _relNcFiltrar();
-}
-
-function _rncResetPav() {
-  document.querySelectorAll('.rnc-pav-chk').forEach(c => { c.checked = false; });
-  _rncSetLabel('rnc-pav', 'Todos');
-}
-
-function _rncPavChange() {
-  const sel = Array.from(document.querySelectorAll('.rnc-pav-chk:checked')).map(c => c.value);
-  const tot = document.querySelectorAll('.rnc-pav-chk').length;
-  _rncSetLabel('rnc-pav', sel.length === 0 || sel.length === tot ? 'Todos' : sel.length === 1 ? 'Pav ' + sel[0] : sel.length + ' pavtos');
-  _rncResetUnid();
-  // Calcula unidades disponíveis
-  const torresAtivas = new Set(Array.from(document.querySelectorAll('.rnc-torre-chk:checked')).map(c => c.value));
-  const pavsAtivos   = new Set(sel.length ? sel : null);
-  const unids = (window._rncLocaisAll || []).filter(path => {
-    const parts = path.split(' / ');
-    const torre = parts[0];
-    const pav   = parts[1] === 'Interno' ? parts[2] : 'Externo';
-    if (torresAtivas.size > 0 && !torresAtivas.has(torre)) return false;
-    if (pavsAtivos.size  > 0 && !pavsAtivos.has(pav))      return false;
-    return true;
+  const tree = {}, pavOrder = {};
+  comNC.forEach(l => {
+    const torre = l.torre || '—';
+    const tipo  = l.tipo  || 'interno';
+    if (!tree[torre]) { tree[torre] = {}; pavOrder[torre] = []; }
+    if (!tree[torre][tipo]) tree[torre][tipo] = { interno: {}, externo: [] };
+    if (tipo === 'interno') {
+      const pav = l.pavimento || '—';
+      const set = l.setor     || '—';
+      if (!tree[torre][tipo].interno[pav]) { tree[torre][tipo].interno[pav] = {}; if (!pavOrder[torre].includes(pav)) pavOrder[torre].push(pav); }
+      if (!tree[torre][tipo].interno[pav][set]) tree[torre][tipo].interno[pav][set] = [];
+      tree[torre][tipo].interno[pav][set].push(toPath(l));
+    } else {
+      tree[torre][tipo].externo.push(toPath(l));
+    }
   });
-  const opts = document.getElementById('rnc-unid-options');
-  if (opts) opts.innerHTML = unids.length
-    ? unids.map(path => _rncCheckboxItemPath('rnc-unid-chk', path, '_rncUnidChange()')).join('')
-    : `<div style="padding:8px 10px;font-size:11px;color:var(--text3)">Nenhuma unidade</div>`;
-  _relNcFiltrar();
+
+  const chk = (path) => {
+    const safe = path.replace(/"/g,'&quot;');
+    const label = path.split(' / ').pop();
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:1px solid rgba(255,255,255,.04)" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <input type="checkbox" class="rnc-local-chk" value="${safe}" onchange="_rncLocalChange()" style="width:13px;height:13px;accent-color:var(--accent);flex-shrink:0">
+      <span>${label}</span>
+    </label>`;
+  };
+
+  let html = `<div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:6px;position:sticky;top:0;background:var(--bg2)">
+    <button type="button" onclick="document.querySelectorAll('.rnc-local-chk').forEach(c=>c.checked=true);_rncLocalChange()" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">Todos</button>
+    <button type="button" onclick="document.querySelectorAll('.rnc-local-chk').forEach(c=>c.checked=false);_rncLocalChange()" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer">Nenhum</button>
+  </div>`;
+
+  Object.entries(tree).forEach(([torre, tipos]) => {
+    html += `<div style="padding:6px 10px 3px;font-size:11px;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);background:var(--bg3)">🏗 ${torre}</div>`;
+    Object.entries(tipos).forEach(([tipo, dados]) => {
+      if (tipo === 'interno') {
+        const pavs = pavOrder[torre] || Object.keys(dados.interno);
+        pavs.forEach(pav => {
+          html += `<div style="padding:4px 10px 2px 16px;font-size:11px;color:var(--text2);font-weight:600;background:var(--bg2)">📐 ${pav}</div>`;
+          Object.entries(dados.interno[pav]).forEach(([setor, paths]) => {
+            const ind = setor !== '—' ? 32 : 24;
+            if (setor !== '—') html += `<div style="padding:3px 10px 2px ${ind-8}px;font-size:11px;color:var(--text3)">Setor ${setor}</div>`;
+            paths.forEach(p => { html += `<div style="padding-left:${ind-12}px">${chk(p)}</div>`; });
+          });
+        });
+      } else {
+        dados.externo.forEach(p => { html += `<div style="padding-left:8px">${chk(p)}</div>`; });
+      }
+    });
+  });
+
+  return html;
 }
 
-function _rncResetUnid() {
-  document.querySelectorAll('.rnc-unid-chk').forEach(c => { c.checked = false; });
-  _rncSetLabel('rnc-unid', 'Todas');
-  const opts = document.getElementById('rnc-unid-options');
-  if (opts) opts.innerHTML = `<div style="padding:8px 10px;font-size:11px;color:var(--text3)">Selecione um pavimento primeiro</div>`;
-}
-
-function _rncUnidChange() {
-  const sel = Array.from(document.querySelectorAll('.rnc-unid-chk:checked')).map(c => c.value);
-  const tot = document.querySelectorAll('.rnc-unid-chk').length;
-  _rncSetLabel('rnc-unid', sel.length === 0 || sel.length === tot ? 'Todas'
-    : sel.length === 1 ? sel[0].split(' / ').pop()
-    : sel.length + ' unidades');
+function _rncLocalChange() {
+  const sel = document.querySelectorAll('.rnc-local-chk:checked').length;
+  const tot = document.querySelectorAll('.rnc-local-chk').length;
+  _rncSetLabel('rnc-local', sel === 0 || sel === tot ? 'Todos' : `${sel} local${sel !== 1 ? 'is' : ''}`);
   _relNcFiltrar();
 }
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function _rncServicoToggle(e) {
   e.stopPropagation();
