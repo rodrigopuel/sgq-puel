@@ -10374,7 +10374,7 @@ async function renderFornecedores(m){
               return `
               <tr>
                 <td style="font-weight:600">${forn.nome}</td>
-                <td style="font-family:var(--font-mono);font-size:12px">${forn.documento}</td>
+                <td style="font-family:var(--font-mono);font-size:12px">${formatarDocumento(forn.documento, forn.tipo_documento)}</td>
                 <td style="font-family:var(--font-mono);font-weight:700;color:${cond?cond.hex:'var(--text3)'}">${av !== null ? av.toFixed(1) : '—'}</td>
                 <td>${cond ? `<span style="font-size:12px;font-weight:600;color:${cond.hex}">${cond.label}</span>` : '<span style="color:var(--text3);font-size:12px">—</span>'}</td>
                 <td class="td-acoes">
@@ -10420,7 +10420,7 @@ async function renderFornecedoresInativos(m){
             ${fornecedoresInativos.map(forn => `
               <tr>
                 <td>${forn.nome}</td>
-                <td>${forn.documento}</td>
+                <td style="font-family:var(--font-mono);font-size:12px">${formatarDocumento(forn.documento, forn.tipo_documento)}</td>
                 <td><span class="tag tag-enc">${forn.status}</span></td>
                 <td class="td-acoes">
                   <button class="btn btn-ghost btn-sm" onclick="editarFornecedor('${forn.id}')">Editar</button>
