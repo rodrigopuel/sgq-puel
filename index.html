@@ -5061,6 +5061,7 @@ async function renderTemplates(m){
           <td class="td-acoes"><div style="display:flex;gap:6px">
             ${pA?`<button class="btn btn-secondary btn-xs" onclick="abrirEditorTemplate('${t.id}')">Editar</button>`:''}
             <button class="btn btn-ghost btn-xs" onclick="verHistorico('${t.id}')">Revisões</button>
+            ${pA?`<button class="btn btn-ghost btn-xs" style="color:var(--red,#e05252)" onclick="excluirTemplateFVS('${t.id}','${t.servico.replace(/'/g,"\\'")}')">Excluir</button>`:''}
           </div></td>
         </tr>`).join('')}
         ${!templates.length?`<tr><td colspan="6"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhum template FVS</div></div></td></tr>`:''}
@@ -5068,6 +5069,21 @@ async function renderTemplates(m){
   } catch (error) {
     console.error('Erro ao renderizar templates:', error);
     m.innerHTML='<div class="empty"><div class="empty-title">Erro ao carregar templates</div></div>';
+  }
+}
+
+async function excluirTemplateFVS(id, nome) {
+  if (!['admin','master'].includes(usuarioAtual?.perfil)) {
+    toast('Sem permissão para excluir templates', 'error'); return;
+  }
+  if (!confirm(`Excluir o template "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return;
+  try {
+    const client = await esperarSupabase();
+    await client.remove('templates_fvs', id);
+    toast('Template excluído com sucesso', 'success');
+    renderTemplates(document.getElementById('main-content'));
+  } catch(e) {
+    toast('Erro ao excluir: ' + (e.message || e), 'error');
   }
 }
 
