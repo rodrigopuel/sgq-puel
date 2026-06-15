@@ -4082,6 +4082,8 @@ async function verFVM(fvmId){
     `;
     // Carregar fornecedores em cache
     getFornecedoresCache(true);
+    // Calcular e exibir notas por seção imediatamente após render
+    atualizarNotaDisplayFVM();
   } catch(error){
     console.error('Erro ao abrir FVM:', error);
     toast('Erro ao carregar FVM','error');
@@ -4171,31 +4173,36 @@ function renderFormFVM(fvm, tpl, encerrada=false){
     const corpoGrupo = isEscala ? `
       <div style="margin-top:10px">
         ${(g.opcoes||[]).map(op => {
-          const selecionada = String((_fvmDados.resultados||{})['g_' + g.id]) === String(op.pct) && op.label === ((_fvmDados.resultados||{})['g_' + g.id + '_label'] || op.label);
-          const checked = String((_fvmDados.resultados||{})['g_' + g.id]) === String(op.pct) + '_' + op.id;
-          return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);cursor:${encerrada?'default':'pointer'}">
-            <input type="radio" name="escala_${g.id}" value="${op.pct}_${op.id}" ${(_fvmDados.resultados||{})['g_' + g.id] === op.pct+'_'+op.id ?'checked':''} ${encerrada?'disabled':''} onchange="atualizarEscalaFVM('${fvm.id}','${g.id}','${op.pct}_${op.id}');atualizarNotaDisplayFVM()">
+          const isChecked = String((_fvmDados.resultados||{})['g_' + g.id]) === String(op.pct) + '_' + String(op.id);
+          const labelBg = isChecked ? 'var(--accent)18' : 'var(--bg2)';
+          const labelBorder = isChecked ? 'var(--accent)' : 'var(--border)';
+          return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;background:${labelBg};border:1px solid ${labelBorder};border-radius:var(--radius);cursor:${encerrada?'default':'pointer'}">
+            <input type="radio" name="escala_${g.id}" value="${op.pct}_${op.id}" ${isChecked?'checked':''} ${encerrada?'disabled':''} onchange="atualizarEscalaFVM('${fvm.id}','${g.id}','${op.pct}_${op.id}');atualizarNotaDisplayFVM()">
             <span style="flex:1;font-size:13px">${op.label}</span>
             <span style="font-size:12px;font-family:var(--font-mono);color:var(--accent);font-weight:600">${op.pct}%</span>
           </label>`;
         }).join('')}
       </div>` : `
       <div style="margin-top:10px">
-        ${(g.criterios||[]).map((c, ci) => `
+        ${(g.criterios||[]).map((c, ci) => {
+          const resCrit = (_fvmDados.resultados||{})[c.id];
+          const simSel = resCrit === 'SIM';
+          const naoSel = resCrit === 'NÃO';
+          return `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);gap:12px">
             <span style="font-size:13px;flex:1">${ci+1}. ${esc(c.titulo)}</span>
-            <div style="display:flex;gap:16px;flex-shrink:0">
-              <label style="display:flex;align-items:center;gap:6px;cursor:${encerrada?'default':'pointer'}">
-                <input type="radio" name="crit_${c.id}" value="SIM" ${(_fvmDados.resultados||{})[c.id]==='SIM'?'checked':''} ${encerrada?'disabled':''} onchange="atualizarResultadoFVM('${fvm.id}','${c.id}','SIM');atualizarNotaDisplayFVM()">
-                <span style="font-size:13px;color:var(--accent);font-weight:600;font-family:var(--font-mono)">SIM</span>
+            <div style="display:flex;gap:8px;flex-shrink:0">
+              <label style="display:flex;align-items:center;gap:6px;cursor:${encerrada?'default':'pointer'};padding:4px 10px;border-radius:var(--radius);border:1px solid ${encerrada&&simSel?'var(--accent)':'transparent'};background:${encerrada&&simSel?'var(--accent)22':'transparent'}">
+                <input type="radio" name="crit_${c.id}" value="SIM" ${simSel?'checked':''} ${encerrada?'disabled':''} onchange="atualizarResultadoFVM('${fvm.id}','${c.id}','SIM');atualizarNotaDisplayFVM()">
+                <span style="font-size:13px;color:${encerrada&&simSel?'var(--accent)':'var(--text3)'};font-weight:600;font-family:var(--font-mono)">SIM</span>
               </label>
-              <label style="display:flex;align-items:center;gap:6px;cursor:${encerrada?'default':'pointer'}">
-                <input type="radio" name="crit_${c.id}" value="NÃO" ${(_fvmDados.resultados||{})[c.id]==='NÃO'?'checked':''} ${encerrada?'disabled':''} onchange="atualizarResultadoFVM('${fvm.id}','${c.id}','NÃO');atualizarNotaDisplayFVM()">
-                <span style="font-size:13px;color:var(--accent);font-weight:600;font-family:var(--font-mono)">NÃO</span>
+              <label style="display:flex;align-items:center;gap:6px;cursor:${encerrada?'default':'pointer'};padding:4px 10px;border-radius:var(--radius);border:1px solid ${encerrada&&naoSel?'#ef4444':'transparent'};background:${encerrada&&naoSel?'#ef444422':'transparent'}">
+                <input type="radio" name="crit_${c.id}" value="NÃO" ${naoSel?'checked':''} ${encerrada?'disabled':''} onchange="atualizarResultadoFVM('${fvm.id}','${c.id}','NÃO');atualizarNotaDisplayFVM()">
+                <span style="font-size:13px;color:${encerrada&&naoSel?'#ef4444':'var(--text3)'};font-weight:600;font-family:var(--font-mono)">NÃO</span>
               </label>
             </div>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
 
     return `
